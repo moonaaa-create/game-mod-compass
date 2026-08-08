@@ -13,9 +13,18 @@ SEARCH_ENDPOINT = "https://api.curseforge.com/v1/mods/search"
 MINECRAFT_GAME_ID = 432
 MODS_CLASS_ID = 6
 
-# 4개 채택 카테고리 (docs/spec.md 섹션 4-2). 실제 categoryId는 배포 전
-# `GET /v1/categories?gameId=432&classId=6`로 조회해 채워야 한다 (#6 결정사항).
-TARGET_CATEGORIES = ["technology", "magic", "adventure_rpg", "map_information"]
+# 4개 채택 카테고리의 CurseForge categoryId 매핑 (gameId=432 Minecraft, classId=6 Mods).
+# Best-effort로 독립적인 커뮤니티/아카이브 소스를 교차 검증했다:
+# - https://raw.githubusercontent.com/VXLStudios/vxl-launcher/9506e1fa97b89baddadce1accfb1ef32e59199a7/src/constants/curseforge-categories.ts
+# - https://raw.githubusercontent.com/kiyonya/MioCore/62f221b5ad137ee223040ac270e688ee13bc8801/src/community/cates.ts
+# - https://raw.githubusercontent.com/sethryder/modpackindex-api-docs/53a7a6b2e6a68dac4b8b83e077ce803bbef3bf21/docs/index.md
+# 공식 `GET /v1/categories?gameId=432&classId=6` 조회는 배포 전 최종 확인이 필요하다.
+TARGET_CATEGORIES: dict[str, int] = {
+    "technology": 412,
+    "magic": 419,
+    "adventure_rpg": 422,
+    "map_information": 423,
+}
 
 
 def has_api_key() -> bool:
