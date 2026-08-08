@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import seed
-from app.routers import games, survey
+from app.routers import chat, games, survey
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174"
@@ -38,6 +38,7 @@ app.add_middleware(
 
 app.include_router(games.router)
 app.include_router(survey.router)
+app.include_router(chat.router)
 
 
 @app.get("/api/health")
