@@ -9,14 +9,15 @@ import httpx
 
 GAMES_ENDPOINT = "https://games.roblox.com/v1/games"
 THUMBNAILS_ENDPOINT = "https://thumbnails.roblox.com/v1/games/icons"
+ROBLOX_BATCH_SIZE = 50
 
 
 async def fetch_games(universe_ids: list[int]) -> list[dict[str, Any]]:
     """주어진 universe_id 목록에 대한 게임 메타데이터를 조회한다."""
     results: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=10) as client:
-        for i in range(0, len(universe_ids), 100):
-            chunk = universe_ids[i : i + 100]
+        for i in range(0, len(universe_ids), ROBLOX_BATCH_SIZE):
+            chunk = universe_ids[i : i + ROBLOX_BATCH_SIZE]
             ids_param = ",".join(str(x) for x in chunk)
             resp = await client.get(GAMES_ENDPOINT, params={"universeIds": ids_param})
             resp.raise_for_status()
@@ -28,8 +29,8 @@ async def fetch_thumbnails(universe_ids: list[int]) -> dict[int, str]:
     """universe_id -> 썸네일 URL 매핑을 조회한다."""
     thumbs: dict[int, str] = {}
     async with httpx.AsyncClient(timeout=10) as client:
-        for i in range(0, len(universe_ids), 100):
-            chunk = universe_ids[i : i + 100]
+        for i in range(0, len(universe_ids), ROBLOX_BATCH_SIZE):
+            chunk = universe_ids[i : i + ROBLOX_BATCH_SIZE]
             ids_param = ",".join(str(x) for x in chunk)
             resp = await client.get(
                 THUMBNAILS_ENDPOINT,

@@ -17,7 +17,72 @@ from app.models import MinecraftMod, ModCategory, ModLoader, RobloxGame
 from app.services import curseforge as cf_service
 from app.services import roblox as roblox_service
 
-ROBLOX_UNIVERSE_IDS = list(range(1_000_000, 1_000_094))  # placeholder 94개 (실서비스 시 실제 인기 목록으로 교체)
+# Public Roblox API로 well-known 인기 게임 placeId -> universeId 변환 후 검증한 실데이터.
+# 검증 방법:
+#   1) GET /universes/v1/places/{placeId}/universe
+#   2) GET https://games.roblox.com/v1/games?universeIds=...
+# 2026-08-08 기준 59개를 확인했으며, placeholder 순번 ID는 제거했다.
+ROBLOX_UNIVERSE_IDS = [
+    383310974,   # Adopt Me!
+    1686885941,  # Brookhaven RP
+    994732206,   # Blox Fruits
+    140239261,   # MeepCity
+    88070565,    # Welcome to Bloxburg
+    111958650,   # Arsenal
+    66654135,    # Murder Mystery 2
+    245662005,   # Jailbreak
+    703124385,   # Tower of Hell
+    1008451066,  # Da Hood
+    2440500124,  # DOORS
+    2316994223,  # Pet Simulator X!
+    65241,       # Natural Disaster Survival
+    31970568,    # Theme Park Tycoon 2
+    601130232,   # Bee Swarm Simulator
+    321778215,   # Royale High
+    3647333358,  # Evade
+    2619619496,  # BedWars
+    1511883870,  # Shindo Life
+    2380077519,  # Slap Battles
+    1214576306,  # Restaurant Tycoon 2
+    3183403065,  # Anime Adventures
+    210851291,   # Build A Boat For Treasure
+    47545,       # Work at a Pizza Place
+    1480782352,  # Vehicle Legends
+    113491250,   # Phantom Forces
+    271119130,   # Breaking Point
+    1516533665,  # Piggy
+    372226183,   # Flee the Facility
+    2549475383,  # Livetopia
+    2711375305,  # Catalog Avatar Creator
+    3405618667,  # Sonic Speed Simulator
+    1390601379,  # Combat Warriors
+    274816972,   # Car Crushers 2
+    3085257211,  # Rainbow Friends
+    1359573625,  # Deepwoken
+    2294168059,  # The Mimic
+    1489026993,  # Survive the Killer!
+    4348829796,  # Murderers VS Sheriffs DUELS
+    3543117236,  # Apeirophobia
+    3808081382,  # The Strongest Battlegrounds
+    1202096104,  # Driving Empire
+    107172930,   # Horrific Housing
+    110181652,   # Epic Minigames
+    323675642,   # Flood Escape 2
+    848145103,   # Dungeon Quest!
+    1424449565,  # Super Golf!
+    985731078,   # World // Zero
+    1348402608,  # Anime Fighting Simulator
+    1720936166,  # All Star Tower Defense
+    2142948266,  # Project Slayers
+    1119466531,  # Legends Of Speed
+    1016936714,  # Your Bizarre Adventure
+    1451439645,  # King Legacy
+    4778845442,  # Toilet Tower Defense
+    4777817887,  # Blade Ball
+    1176784616,  # Tower Defense Simulator
+    1247975681,  # BIG Paintball!
+    1235188606,  # Dragon Adventures
+]
 
 
 def _now() -> str:
