@@ -55,6 +55,15 @@ cp .env.example .env   # VITE_API_BASE=http://localhost:8000
 npm run dev
 ```
 
+## Render 배포
+
+- 이 저장소에는 Render Blueprint용 `render.yaml`이 포함되어 있습니다.
+- Render Dashboard에서 **New + → Blueprint**로 이 리포지토리와 `main` 브랜치를 연결해 배포하세요.
+- `game-mod-compass-api`는 FastAPI Web Service + Persistent Disk(`/var/data`), `game-mod-compass-web`는 Vue Static Site로 생성됩니다.
+- 첫 배포 후 `CURSEFORGE_API_KEY`는 대시보드에서 수동으로 입력하세요.
+- `ALLOWED_ORIGINS`와 `VITE_API_BASE`는 Blueprint에서 서비스 URL을 참조하도록 설정했으니 실제 URL로 올바르게 연결됐는지 한 번 확인하세요.
+- 필요하면 두 값을 대시보드에서 직접 수정한 뒤 재배포하면 됩니다.
+
 ## 데이터 갱신 (크론)
 
 `backend/app/seed.py`의 `run_sync_force()`가 매일 1회(APScheduler, 새벽 3시) 자동 실행되어
@@ -65,4 +74,3 @@ Roblox/CurseForge 최신 데이터로 캐시를 갱신합니다 (사람 개입 �
 - 실제 로블록스 인기 게임 94개의 `universe_id` 목록 수집 (현재는 placeholder ID 사용, `app/seed.py` 참고)
 - CurseForge 4개 카테고리(Technology/Magic/Adventure&RPG/Map&Information)의 실제 `categoryId` 조회 및 매핑
 - CurseForge API 키 발급 (console.curseforge.com, Overwolf 팀 심사)
-- Render 배포 설정 (Static Site + Web Service + Persistent Disk)
