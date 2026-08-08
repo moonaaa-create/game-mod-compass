@@ -44,6 +44,7 @@ uvicorn app.main:app --reload --port 8000
 
 - 최초 실행 시 DB가 비어있으면 로블록스 94개 / 마인크래프트 100개 fixture 데이터를 자동으로 시딩합니다.
 - `CURSEFORGE_API_KEY`가 없으면 CurseForge 실 API 대신 결정론적 fixture 데이터를 사용합니다 (오프라인 개발 대비).
+- AI 자유 대화(`/api/chat`)는 `APIM_BASE_URL`/`APIM_KEY`/`CHAT_MODEL` (사내 APIM Foundry 프록시) 또는 `OPENAI_API_KEY`가 있으면 사용하고, 둘 다 없으면 규칙 기반 한국어 파서로 자동 대체됩니다. 값은 `.env`에만 설정하고 절대 커밋하지 마세요.
 - API 문서: http://localhost:8000/docs
 
 ### 프론트엔드

@@ -201,10 +201,40 @@ def _normalize_llm_intent(data: dict) -> ExtractedIntent:
     return intent
 
 
+def _llm_endpoint_config() -> tuple[str, dict[str, str], str] | None:
+    """LLM 호출용 (url, headers, model) 설정을 반환. 사용 가능한 provider가 없으면 None.
+
+    사내 APIM Foundry 프록시(APIM_BASE_URL/APIM_KEY)가 설정돼 있으면 우선 사용하고,
+    없으면 OpenAI 직접 호출(OPENAI_API_KEY)로 대체한다.
+    """
+    apim_base_url = os.getenv("APIM_BASE_URL")
+    apim_key = os.getenv("APIM_KEY")
+    if apim_base_url and apim_key:
+        model = os.getenv("CHAT_MODEL", "gpt-4o-mini")
+        url = apim_base_url.rstrip("/") + "/" + model + "/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": apim_key,
+        }
+        return url, headers, model
+
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
+        auth_value = "Bearer" + " " + openai_key
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": auth_value,
+        }
+        return "https://api.openai.com/v1/chat/completions", headers, "gpt-4o-mini"
+
+    return None
+
+
 def _llm_extract_intent(state: ChatState, message: str) -> ExtractedIntent | None:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    endpoint_config = _llm_endpoint_config()
+    if not endpoint_config:
         return None
+    url, headers, model = endpoint_config
 
     history_lines = []
     for item in state["history"][-8:]:
@@ -233,7 +263,7 @@ def _llm_extract_intent(state: ChatState, message: str) -> ExtractedIntent | Non
     }
     conversation = "\n".join(history_lines)
     payload = {
-        "model": "gpt-4o-mini",
+        "model": model,
         "messages": [
             {
                 "role": "system",
@@ -259,11 +289,7 @@ def _llm_extract_intent(state: ChatState, message: str) -> ExtractedIntent | Non
 
     try:
         with httpx.Client(timeout=8.0) as client:
-            response = client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json=payload,
-            )
+            response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
         data = response.json()
         tool_calls = data["choices"][0]["message"].get("tool_calls") or []
