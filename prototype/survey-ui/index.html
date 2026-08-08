@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE — throwaway UI exploration for issue #9
+  "취향 설문 UI 프로토타입" — https://github.com/moonaaa-create/game-mod-compass/issues/9
+
+  Three radically different UI variants for the taste-survey + recommendation flow,
+  switchable via ?variant=A|B|C. This is NOT production code — no framework, no build
+  step, no tests. Just double-click this file (or `open index.html`) to run it.
+
+  Plan: Variant A = single-card step wizard. Variant B = sidebar + grid dashboard.
+  Variant C = conversational chat-style flow. All three cover: pick game (Roblox /
+  Minecraft) -> answer tailored survey -> see top-5 recommendation results.
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PROTOTYPE — 취향 설문 UI</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --accent: #6c8cff;
+    --accent-2: #7fe3c1;
+    --text: #e8eaed;
+    --muted: #9aa2af;
+    --border: #2a2f3a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, sans-serif;
+    min-height: 100vh;
+  }
+  .hidden { display: none !important; }
+  button { font-family: inherit; cursor: pointer; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel-2);
+    color: var(--text); font-size: 14px; transition: all .15s ease;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.selected { background: var(--accent); border-color: var(--accent); color: #0b0d12; font-weight: 600; }
+  .btn-primary {
+    background: var(--accent); color: #0b0d12; border: none; font-weight: 700;
+    padding: 12px 24px; border-radius: 10px; font-size: 15px;
+  }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    padding: 10px 18px; border-radius: 10px; font-size: 14px;
+  }
+  .rec-card {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .rec-card .thumb {
+    width: 100%; aspect-ratio: 16/9; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    opacity: .35;
+  }
+  .rec-card .title { font-weight: 700; font-size: 15px; }
+  .rec-card .meta { font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2a2f3a; color: var(--accent-2); }
+
+  /* ---------------- Variant A: single-card step wizard ---------------- */
+  #variantA {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px;
+  }
+  .wizard-card {
+    width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .progress-bar { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; margin-bottom: 28px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .3s ease; }
+  .wizard-card h2 { margin: 0 0 6px; font-size: 22px; }
+  .wizard-card p.sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  .wizard-options { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
+  .wizard-nav { display: flex; justify-content: space-between; align-items: center; }
+  .game-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px; }
+  .game-pick-tile {
+    padding: 28px 16px; text-align: center; border-radius: 16px; border: 2px solid var(--border);
+    background: var(--panel-2); font-weight: 700; font-size: 16px;
+  }
+  .game-pick-tile:hover { border-color: var(--accent); }
+  .wizard-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+  /* ---------------- Variant B: sidebar + grid dashboard ---------------- */
+  #variantB { display: flex; min-height: 100vh; }
+  .side-rail {
+    width: 240px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border);
+    padding: 28px 20px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .side-rail h1 { font-size: 16px; margin: 0 0 24px; }
+  .side-step { padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+  .side-step.active { background: var(--panel-2); color: var(--text); font-weight: 700; }
+  .side-step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .side-step.active .dot, .side-step.done .dot { background: var(--accent); }
+  .b-main { flex: 1; padding: 40px; max-width: 900px; }
+  .b-question h2 { font-size: 24px; margin: 0 0 20px; }
+  .b-option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .b-option-tile {
+    padding: 20px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel-2);
+    font-weight: 600; text-align: center;
+  }
+  .b-option-tile:hover { border-color: var(--accent); }
+  .b-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+
+  /* ---------------- Variant C: conversational chat ---------------- */
+  #variantC { min-height: 100vh; display: flex; justify-content: center; padding: 30px 16px 120px; }
+  .chat-shell { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 16px; }
+  .chat-bubble {
+    max-width: 80%; padding: 14px 18px; border-radius: 18px; font-size: 14.5px; line-height: 1.5;
+  }
+  .chat-bubble.bot { background: var(--panel-2); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .chat-bubble.user { background: var(--accent); color: #0b0d12; font-weight: 600; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .chat-options { display: flex; flex-wrap: wrap; gap: 8px; align-self: flex-start; max-width: 90%; margin-left: 4px; }
+  .chat-results { display: flex; flex-direction: column; gap: 10px; align-self: stretch; }
+  .chat-result-row {
+    display: flex; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 14px;
+  }
+  .chat-result-row .rank {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #0b0d12;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0;
+  }
+  .chat-thumb { width: 48px; height: 48px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); opacity: .35; flex-shrink: 0; }
+
+  /* ---------------- Floating switcher (shared) ---------------- */
+  #proto-switcher {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #000; color: #fff; border: 1px solid #444;
+    border-radius: 999px; padding: 10px 8px; display: flex; align-items: center; gap: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5); z-index: 9999; font-size: 13px;
+  }
+  #proto-switcher button {
+    background: #fff2; border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+  #proto-switcher button:hover { background: #fff4; }
+  #proto-switcher .label { padding: 0 14px; font-weight: 700; white-space: nowrap; }
+  #proto-switcher .badge { background: #ffcf40; color: #000; font-size: 10px; padding: 2px 8px; border-radius: 999px; margin-right: 8px; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- ============================= VARIANT A ============================= -->
+<div id="variantA">
+  <div class="wizard-card">
+    <div class="progress-bar"><div class="progress-fill" id="a-progress" style="width:0%"></div></div>
+
+    <div id="a-step-game">
+      <h2>어떤 게임을 즐기시나요?</h2>
+      <p class="sub">선택한 게임에 맞춰 맞춤 설문을 진행합니다.</p>
+      <div class="game-pick-grid">
+        <div class="game-pick-tile" onclick="A.pickGame('roblox')">🎮 로블록스</div>
+        <div class="game-pick-tile" onclick="A.pickGame('minecraft')">🧱 마인크래프트</div>
+      </div>
+    </div>
+
+    <div id="a-step-survey" class="hidden">
+      <h2 id="a-q-title"></h2>
+      <p class="sub" id="a-q-sub"></p>
+      <div class="wizard-options" id="a-q-options"></div>
+      <div class="wizard-nav">
+        <button class="btn-ghost" onclick="A.back()">이전</button>
+        <button class="btn-primary" id="a-next-btn" onclick="A.next()">다음</button>
+      </div>
+    </div>
+
+    <div id="a-step-results" class="hidden">
+      <h2>당신을 위한 추천 5</h2>
+      <p class="sub" id="a-results-sub"></p>
+      <div class="wizard-results-grid" id="a-results-grid"></div>
+      <div class="wizard-nav" style="margin-top:20px;">
+        <button class="btn-ghost" onclick="A.restart()">처음부터 다시</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= VARIANT B ============================= -->
+<div id="variantB">
+  <div class="side-rail">
+    <h1>🧭 Game Mod Compass</h1>
+    <div class="side-step" id="b-step-1">
+      <span class="dot"></span> 1. 게임 선택
+    </div>
+    <div class="side-step" id="b-step-2">
+      <span class="dot"></span> 2. 취향 설문
+    </div>
+    <div class="side-step" id="b-step-3">
+      <span class="dot"></span> 3. 추천 결과
+    </div>
+  </div>
+  <div class="b-main">
+    <div id="b-panel-game">
+      <div class="b-question"><h2>어떤 게임을 즐기시나요?</h2></div>
+      <div class="b-option-grid">
+        <div class="b-option-tile" onclick="B.pickGame('roblox')">🎮<br>로블록스</div>
+        <div class="b-option-tile" onclick="B.pickGame('minecraft')">🧱<br>마인크래프트</div>
+      </div>
+    </div>
+
+    <div id="b-panel-survey" class="hidden">
+      <div class="b-question">
+        <h2 id="b-q-title"></h2>
+        <p style="color:var(--muted)" id="b-q-sub"></p>
+      </div>
+      <div class="b-option-grid" id="b-q-options"></div>
+      <button class="btn-primary" id="b-next-btn" onclick="B.next()">다음</button>
+      <button class="btn-ghost" onclick="B.back()" style="margin-left:10px;">이전</button>
+    </div>
+
+    <div id="b-panel-results" class="hidden">
+      <div class="b-question"><h2>추천 상위 5개</h2></div>
+      <div class="b-results-grid" id="b-results-grid"></div>
+      <button class="btn-ghost" onclick="B.restart()" style="margin-top:20px;">처음부터 다시</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= VARIANT C ============================= -->
+<div id="variantC">
+  <div class="chat-shell" id="c-shell"></div>
+</div>
+
+<!-- ============================= SWITCHER ============================= -->
+<div id="proto-switcher">
+  <span class="badge">PROTOTYPE</span>
+  <button onclick="Switcher.prev()">←</button>
+  <span class="label" id="proto-label"></span>
+  <button onclick="Switcher.next()">→</button>
+</div>
+
+<script>
+/* ---------------------------------------------------------------------
+ * Shared mock data — mirrors the schema/decisions from issues #6, #7, #8
+ * ------------------------------------------------------------------- */
+const SURVEYS = {
+  roblox: [
+    {
+      key: 'genres',
+      title: '어떤 장르를 좋아하시나요?',
+      sub: '여러 개 선택할 수 있어요',
+      multi: true,
+      options: ['Adventure', 'RPG', 'Horror', 'Simulation', 'Fighting', 'Sci-Fi']
+    },
+    {
+      key: 'playerSize',
+      title: '어떤 규모의 플레이를 원하시나요?',
+      sub: '하나만 선택해주세요',
+      multi: false,
+      options: ['대규모 (멀티플레이 위주)', '소규모 (캐주얼)']
+    }
+  ],
+  minecraft: [
+    {
+      key: 'categories',
+      title: '어떤 모드 카테고리를 좋아하시나요?',
+      sub: '여러 개 선택할 수 있어요',
+      multi: true,
+      options: ['기술 (Technology)', '마법 (Magic)', '모험/RPG', '맵/정보']
+    }
+  ]
+};
+
+const MOCK_RESULTS = {
+  roblox: [
+    { name: 'Blox Fruits', meta: '동접 210k · Adventure', tag: '대규모' },
+    { name: 'Brookhaven RP', meta: '동접 180k · Adventure', tag: '소규모' },
+    { name: "Doors", meta: '동접 150k · Horror', tag: '소규모' },
+    { name: 'Pet Simulator 99', meta: '동접 120k · Simulation', tag: '대규모' },
+    { name: 'Da Hood', meta: '동접 95k · Fighting', tag: '대규모' }
+  ],
+  minecraft: [
+    { name: 'JEI (Just Enough Items)', meta: '다운로드 3.5억 · 맵/정보', tag: 'Forge · Fabric' },
+    { name: 'Create', meta: '다운로드 8000만 · 기술', tag: 'Fabric' },
+    { name: 'Applied Energistics 2', meta: '다운로드 5000만 · 기술', tag: 'Forge' },
+    { name: 'Iron\'s Spells & Spellbooks', meta: '다운로드 900만 · 마법', tag: 'Forge' },
+    { name: 'Waystones', meta: '다운로드 7000만 · 맵/정보', tag: 'Forge · Fabric' }
+  ]
+};
+
+function renderRecCard(item) {
+  return `<div class="rec-card">
+    <div class="thumb"></div>
+    <div class="title">${item.name}</div>
+    <div class="meta">${item.meta}</div>
+    <span class="tag">${item.tag}</span>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------
+ * Variant A — single-card step wizard
+ * ------------------------------------------------------------------- */
+const A = {
+  game: null, qIndex: 0, answers: {},
+  pickGame(game) {
+    this.game = game; this.qIndex = 0; this.answers = {};
+    document.getElementById('a-step-game').classList.add('hidden');
+    document.getElementById('a-step-survey').classList.remove('hidden');
+    this.renderQuestion();
+  },
+  renderQuestion() {
+    const qs = SURVEYS[this.game];
+    const q = qs[this.qIndex];
+    document.getElementById('a-progress').style.width = `${((this.qIndex) / qs.length) * 100}%`;
+    document.getElementById('a-q-title').textContent = q.title;
+    document.getElementById('a-q-sub').textContent = q.sub;
+    const opts = document.getElementById('a-q-options');
+    opts.innerHTML = '';
+    const selected = this.answers[q.key] || (q.multi ? [] : null);
+    q.options.forEach(opt => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (Array.isArray(selected) ? (selected.includes(opt) ? ' selected' : '') : (selected === opt ? ' selected' : ''));
+      chip.textContent = opt;
+      chip.onclick = () => {
+        if (q.multi) {
+          const cur = this.answers[q.key] || [];
+          this.answers[q.key] = cur.includes(opt) ? cur.filter(o => o !== opt) : [...cur, opt];
+        } else {
+          this.answers[q.key] = opt;
+        }
+        this.renderQuestion();
+      };
+      opts.appendChild(chip);
+    });
+  },
+  next() {
+    const qs = SURVEYS[this.game];
+    if (this.qIndex < qs.length - 1) {
+      this.qIndex++; this.renderQuestion();
+    } else {
+      document.getElementById('a-progress').style.width = '100%';
+      document.getElementById('a-step-survey').classList.add('hidden');
+      document.getElementById('a-step-results').classList.remove('hidden');
+      document.getElementById('a-results-sub').textContent =
+        this.game === 'roblox' ? '로블록스 인기 게임 94개 중에서 골랐어요' : '마인크래프트 모드 100개 중에서 골랐어요';
+      document.getElementById('a-results-grid').innerHTML = MOCK_RESULTS[this.game].map(renderRecCard).join('');
+    }
+  },
+  back() {
+    if (this.qIndex > 0) { this.qIndex--; this.renderQuestion(); }
+    else {
+      document.getElementById('a-step-survey').classList.add('hidden');
+      document.getElementById('a-step-game').classList.remove('hidden');
+    }
+  },
+  restart() {
+    document.getElementById('a-step-results').classList.add('hidden');
+    document.getElementById('a-step-game').classList.remove('hidden');
+    document.getElementById('a-progress').style.width = '0%';
+    this.game = null; this.qIndex = 0; this.answers = {};
+  }
+};
+
+/* ---------------------------------------------------------------------
+ * Variant B — sidebar + grid dashboard
+ * ------------------------------------------------------------------- */
+const B = {
+  game: null, qIndex: 0, answers: {},
+  setStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById(`b-step-${i}`);
+      el.classList.remove('active', 'done');
+      if (i < n) el.classList.add('done');
+      if (i === n) el.classList.add('active');
+    });
+  },
+  pickGame(game) {
+    this.game = game; this.qIndex = 0; this.answers = {};
+    document.getElementById('b-panel-game').classList.add('hidden');
+    document.getElementById('b-panel-survey').classList.remove('hidden');
+    this.setStep(2);
+    this.renderQuestion();
+  },
+  renderQuestion() {
+    const q = SURVEYS[this.game][this.qIndex];
+    document.getElementById('b-q-title').textContent = q.title;
+    document.getElementById('b-q-sub').textContent = q.sub;
+    const grid = document.getElementById('b-q-options');
+    grid.innerHTML = '';
+    const selected = this.answers[q.key] || (q.multi ? [] : null);
+    q.options.forEach(opt => {
+      const tile = document.createElement('div');
+      tile.className = 'b-option-tile';
+      tile.style.borderColor = (Array.isArray(selected) ? selected.includes(opt) : selected === opt) ? 'var(--accent)' : 'var(--border)';
+      tile.textContent = opt;
+      tile.onclick = () => {
+        if (q.multi) {
+          const cur = this.answers[q.key] || [];
+          this.answers[q.key] = cur.includes(opt) ? cur.filter(o => o !== opt) : [...cur, opt];
+        } else {
+          this.answers[q.key] = opt;
+        }
+        this.renderQuestion();
+      };
+      grid.appendChild(tile);
+    });
+  },
+  next() {
+    const qs = SURVEYS[this.game];
+    if (this.qIndex < qs.length - 1) { this.qIndex++; this.renderQuestion(); }
+    else {
+      document.getElementById('b-panel-survey').classList.add('hidden');
+      document.getElementById('b-panel-results').classList.remove('hidden');
+      this.setStep(3);
+      document.getElementById('b-results-grid').innerHTML = MOCK_RESULTS[this.game].map(renderRecCard).join('');
+    }
+  },
+  back() {
+    if (this.qIndex > 0) { this.qIndex--; this.renderQuestion(); }
+    else {
+      document.getElementById('b-panel-survey').classList.add('hidden');
+      document.getElementById('b-panel-game').classList.remove('hidden');
+      this.setStep(1);
+    }
+  },
+  restart() {
+    document.getElementById('b-panel-results').classList.add('hidden');
+    document.getElementById('b-panel-game').classList.remove('hidden');
+    this.setStep(1);
+    this.game = null; this.qIndex = 0; this.answers = {};
+  }
+};
+
+/* ---------------------------------------------------------------------
+ * Variant C — conversational chat flow
+ * ------------------------------------------------------------------- */
+const C = {
+  game: null, qIndex: 0, answers: {},
+  shell: null,
+  init() {
+    this.shell = document.getElementById('c-shell');
+    this.reset();
+  },
+  reset() {
+    this.game = null; this.qIndex = 0; this.answers = {};
+    this.shell.innerHTML = '';
+    this.addBot('안녕하세요! 어떤 게임의 추천을 받고 싶으세요?');
+    this.addOptions(['🎮 로블록스', '🧱 마인크래프트'], (label, i) => {
+      const game = i === 0 ? 'roblox' : 'minecraft';
+      this.addUser(label);
+      this.game = game; this.qIndex = 0;
+      this.askQuestion();
+    });
+  },
+  addBot(text) {
+    const b = document.createElement('div');
+    b.className = 'chat-bubble bot';
+    b.textContent = text;
+    this.shell.appendChild(b);
+  },
+  addUser(text) {
+    const b = document.createElement('div');
+    b.className = 'chat-bubble user';
+    b.textContent = text;
+    this.shell.appendChild(b);
+  },
+  clearOptions() {
+    const existing = this.shell.querySelector('.chat-options');
+    if (existing) existing.remove();
+  },
+  addOptions(options, onPick, multi) {
+    this.clearOptions();
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-options';
+    const selectedSet = new Set();
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.textContent = opt;
+      btn.onclick = () => {
+        if (multi) {
+          if (selectedSet.has(i)) { selectedSet.delete(i); btn.classList.remove('selected'); }
+          else { selectedSet.add(i); btn.classList.add('selected'); }
+        } else {
+          onPick(opt, i);
+        }
+      };
+      wrap.appendChild(btn);
+    });
+    if (multi) {
+      const done = document.createElement('button');
+      done.className = 'chip';
+      done.style.background = 'var(--accent)';
+      done.style.color = '#0b0d12';
+      done.style.fontWeight = '700';
+      done.textContent = '선택 완료 →';
+      done.onclick = () => {
+        const chosen = options.filter((_, i) => selectedSet.has(i));
+        onPick(chosen.join(', '), [...selectedSet]);
+      };
+      wrap.appendChild(done);
+    }
+    this.shell.appendChild(wrap);
+    window.scrollTo(0, document.body.scrollHeight);
+  },
+  askQuestion() {
+    const q = SURVEYS[this.game][this.qIndex];
+    this.addBot(q.title + (q.multi ? ' (여러 개 선택 후 완료를 눌러주세요)' : ''));
+    this.addOptions(q.options, (label) => {
+      this.answers[q.key] = label;
+      this.addUser(label);
+      this.clearOptions();
+      if (this.qIndex < SURVEYS[this.game].length - 1) {
+        this.qIndex++;
+        this.askQuestion();
+      } else {
+        this.showResults();
+      }
+    }, q.multi);
+  },
+  showResults() {
+    this.addBot('취향에 딱 맞는 추천 5개를 찾았어요! 🎉');
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-results';
+    MOCK_RESULTS[this.game].forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'chat-result-row';
+      row.innerHTML = `<div class="rank">${i + 1}</div>
+        <div class="chat-thumb"></div>
+        <div>
+          <div style="font-weight:700;">${item.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${item.meta} · <span class="tag">${item.tag}</span></div>
+        </div>`;
+      wrap.appendChild(row);
+    });
+    this.shell.appendChild(wrap);
+    const restart = document.createElement('button');
+    restart.className = 'btn-ghost';
+    restart.style.alignSelf = 'flex-start';
+    restart.style.marginTop = '8px';
+    restart.textContent = '처음부터 다시';
+    restart.onclick = () => this.reset();
+    this.shell.appendChild(restart);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+};
+
+/* ---------------------------------------------------------------------
+ * Switcher — shared across all variants
+ * ------------------------------------------------------------------- */
+const VARIANTS = [
+  { key: 'A', name: '스텝 마법사형 (단일 카드)' },
+  { key: 'B', name: '사이드바 + 그리드 대시보드형' },
+  { key: 'C', name: '대화형 챗봇 스타일' }
+];
+
+const Switcher = {
+  current: 0,
+  init() {
+    const params = new URLSearchParams(window.location.search);
+    const requested = (params.get('variant') || 'A').toUpperCase();
+    const idx = VARIANTS.findIndex(v => v.key === requested);
+    this.current = idx >= 0 ? idx : 0;
+    this.render();
+    document.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+      if (isTyping) return;
+      if (e.key === 'ArrowLeft') this.prev();
+      if (e.key === 'ArrowRight') this.next();
+    });
+  },
+  render() {
+    const v = VARIANTS[this.current];
+    document.getElementById('variantA').classList.toggle('hidden', v.key !== 'A');
+    document.getElementById('variantB').classList.toggle('hidden', v.key !== 'B');
+    document.getElementById('variantC').classList.toggle('hidden', v.key !== 'C');
+    document.getElementById('proto-label').textContent = `${v.key} — ${v.name}`;
+    const url = new URL(window.location);
+    url.searchParams.set('variant', v.key);
+    window.history.replaceState({}, '', url);
+    if (v.key === 'C' && !C.shell) C.init();
+  },
+  prev() { this.current = (this.current - 1 + VARIANTS.length) % VARIANTS.length; this.render(); },
+  next() { this.current = (this.current + 1) % VARIANTS.length; this.render(); }
+};
+
+Switcher.init();
+</script>
+</body>
+</html>
