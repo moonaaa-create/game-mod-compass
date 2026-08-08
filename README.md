@@ -1,45 +1,68 @@
-# Game Compass (게임 나침반)
+# Game Mod Compass (게임모드 나침반)
 
-사용자의 취향과 플레이 상황을 반영해 **지금 나에게 맞는 게임과 게임 모드**를 추천하는 AI 서비스입니다.
+로블록스(인기 게임)와 마인크래프트(모드)를 취향 설문 기반으로 추천하는 반응형 웹앱입니다.
 
-## 문제 정의
+> 상세 스펙: [`docs/spec.md`](docs/spec.md) — 기술 스택, API 연동, 데이터 모델, 매칭 로직 등
+> 모든 설계 결정은 [Wayfinder 맵 #1](https://github.com/moonaaa-create/game-mod-compass/issues/1)에서 이슈 단위로 확정되었습니다.
 
-게임/모드 선택지는 많지만, 인기순 추천만으로는 개인 취향과 현재 상황(혼자/친구와, 짧은 시간/긴 시간, 경쟁/힐링 등)을 충분히 반영하기 어렵습니다.
+## 핵심 흐름
 
-## 핵심 기능 (MVP)
+게임 선택(로블록스/마인크래프트) → 대화형(챗봇 스타일) 설문 → 상위 5개 추천 결과
 
-1. **취향 기반 맞춤 추천**: 간단한 질문 응답을 통해 선호 성향 파악
-2. **상황 반영 추천**: 현재 플레이 상황(시간, 인원, 난이도 선호 등) 입력 반영
-3. **추천 이유 설명**: 왜 이 게임/모드가 맞는지 AI가 이해 가능한 문장으로 설명
+- 로블록스: 장르(복수 선택) + 인원 규모 선호 → 인기도 기준 상위 5개
+- 마인크래프트: 모드 카테고리(복수 선택) → 다운로드 수 기준 상위 5개
+- 회원가입 없이 쿠키 기반 세션으로 이용 가능
 
-## 추천 시스템 접근 방식
+## 기술 스택
 
-- **후보 추출**: 태그 기반 필터링/매칭(장르, 난이도, 플레이 시간, 멀티 여부, 분위기 등)
-- **설명 생성**: LLM을 이용해 개인화된 추천 이유 생성
-- **핵심 구조**: `질문 응답 + 태그 매칭 + LLM 설명`
+| 영역 | 선택 |
+|---|---|
+| 프론트엔드 | Vue 3 + Vite (SPA) |
+| 백엔드 | FastAPI + SQLModel |
+| DB | SQLite |
+| 배포 | Render (Static Site + Web Service + Persistent Disk) |
 
-## 기술 스택 (제안)
+## 프로젝트 구조
 
-- **Frontend**: React + TypeScript + Vite (또는 Streamlit)
-- **Backend**: FastAPI (Python)
-- **Data**: CSV/JSON 기반 게임·모드 메타데이터, PostgreSQL(초기 MVP는 SQLite 가능)
-- **AI**: OpenAI API(또는 동급 LLM API)
-- **(선택) 검색 고도화**: pgvector 또는 FAISS
-- **Deployment**: Vercel(Frontend), Render/Railway(Backend)
+```
+backend/    FastAPI + SQLModel REST API
+frontend/   Vue 3 + Vite SPA (챗봇 스타일 설문 UI)
+docs/       스펙, 리서치 문서
+```
 
-## 데이터 소스 예시
+## 로컬 실행
 
-- Steam 게임 정보
-- 장르/태그 데이터
-- 공개 모드 설명 데이터(수집 가능한 범위)
-- 팀 자체 정리 데이터셋(CSV/JSON)
+### 백엔드
 
-## 기대 효과
+```bash
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # CURSEFORGE_API_KEY 등 설정 (없어도 fixture 데이터로 동작)
+uvicorn app.main:app --reload --port 8000
+```
 
-- 게임/모드 선택 시간 단축
-- 추천 실패 확률 감소
-- 사용자 취향 이해도 향상
+- 최초 실행 시 DB가 비어있으면 로블록스 94개 / 마인크래프트 100개 fixture 데이터를 자동으로 시딩합니다.
+- `CURSEFORGE_API_KEY`가 없으면 CurseForge 실 API 대신 결정론적 fixture 데이터를 사용합니다 (오프라인 개발 대비).
+- API 문서: http://localhost:8000/docs
 
-## 확장 방향
+### 프론트엔드
 
-게임 추천에서 시작해 영화/음악/웹툰 등 취향 기반 추천 서비스로 확장할 수 있습니다.
+```bash
+cd frontend
+npm install
+cp .env.example .env   # VITE_API_BASE=http://localhost:8000
+npm run dev
+```
+
+## 데이터 갱신 (크론)
+
+`backend/app/seed.py`의 `run_sync_force()`가 매일 1회(APScheduler, 새벽 3시) 자동 실행되어
+Roblox/CurseForge 최신 데이터로 캐시를 갱신합니다 (사람 개입 없음).
+
+## 남은 구현 과제
+
+- 실제 로블록스 인기 게임 94개의 `universe_id` 목록 수집 (현재는 placeholder ID 사용, `app/seed.py` 참고)
+- CurseForge 4개 카테고리(Technology/Magic/Adventure&RPG/Map&Information)의 실제 `categoryId` 조회 및 매핑
+- CurseForge API 키 발급 (console.curseforge.com, Overwolf 팀 심사)
+- Render 배포 설정 (Static Site + Web Service + Persistent Disk)
