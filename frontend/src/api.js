@@ -28,3 +28,19 @@ export function submitRobloxSurvey(payload) {
 export function submitMinecraftSurvey(payload) {
   return request('/api/survey/minecraft', { method: 'POST', body: JSON.stringify(payload) })
 }
+
+export function sendChatMessage(message) {
+  return request('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  })
+}
+
+export async function resetChat() {
+  try {
+    return await request('/api/chat/reset', { method: 'POST' })
+  } catch (error) {
+    if (!/요청 실패 \(405\)/.test(error.message)) throw error
+    return request('/api/chat/reset', { method: 'GET' })
+  }
+}
