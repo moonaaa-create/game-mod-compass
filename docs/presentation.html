@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Compass — 프로젝트 발표 자료</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #263043;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-2: #60a5fa;
+    --accent: #4ade80;
+    --border: #334155;
+    --mc-green: #50aa3e;
+    --rb-red: #f24e1e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5vh 8vw;
+    animation: fadeIn 0.35s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .kicker {
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 1.2rem;
+    word-break: keep-all;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+    font-weight: 800;
+    margin-bottom: 1.4rem;
+    word-break: keep-all;
+  }
+
+  p.lead {
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    color: var(--muted);
+    max-width: 900px;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 1.6rem;
+  }
+  .badge {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--primary-2);
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.4rem;
+    margin-top: 1.6rem;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.4rem;
+    margin-top: 1.6rem;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.6rem;
+  }
+  .card h3 {
+    font-size: 1.15rem;
+    color: var(--primary-2);
+    margin-bottom: 0.6rem;
+  }
+  .card p {
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  .card ul {
+    margin-top: 0.6rem;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 2.5rem;
+    margin-top: 1.8rem;
+    flex-wrap: wrap;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat .num {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: var(--primary-2);
+  }
+  .stat .label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
+  }
+
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+  .arch-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem 1.5rem;
+    min-width: 190px;
+  }
+  .arch-box h4 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+  }
+  .arch-box p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .arch-arrow {
+    font-size: 1.6rem;
+    color: var(--muted);
+  }
+
+  table.tech-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.6rem;
+    font-size: 0.95rem;
+  }
+  table.tech-table th, table.tech-table td {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  table.tech-table th {
+    color: var(--primary-2);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  table.tech-table td {
+    color: var(--muted);
+  }
+  table.tech-table td.name {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.8rem;
+  }
+  .timeline-item {
+    display: flex;
+    gap: 1.2rem;
+    align-items: flex-start;
+  }
+  .timeline-dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .timeline-item h4 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  .timeline-item p {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .pixel-row {
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+  .mc-creeper {
+    width: 70px;
+    height: 70px;
+    background-color: var(--mc-green);
+    position: relative;
+    box-shadow: 0 0 0 4px #3a7d2d inset;
+  }
+  .mc-creeper::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #111;
+    top: 14px; left: 14px;
+    box-shadow:
+      28px 0 0 #111, 14px 14px 0 #111, 7px 28px 0 #111, 21px 28px 0 #111,
+      0px 35px 0 #111, 7px 35px 0 #111, 21px 35px 0 #111, 28px 35px 0 #111;
+  }
+  .rb-block {
+    width: 64px; height: 64px;
+    background-color: var(--rb-red);
+    transform: rotate(-15deg);
+    border-radius: 5px;
+    position: relative;
+  }
+  .rb-block::after {
+    content: '';
+    position: absolute;
+    width: 22px; height: 22px;
+    background: var(--panel);
+    top: 21px; left: 21px;
+    border-radius: 2px;
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.4rem;
+    margin-top: 1.8rem;
+    max-width: 700px;
+  }
+  .team-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.6rem 1rem;
+    text-align: center;
+  }
+  .team-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    margin: 0 auto 0.7rem;
+    font-size: 0.9rem;
+  }
+  .team-card h3 { font-size: 1rem; }
+  .team-card .role { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .footer-note {
+    position: absolute;
+    bottom: 3vh;
+    left: 8vw;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .progress {
+    position: absolute;
+    top: 0; left: 0;
+    height: 4px;
+    background: var(--primary);
+    transition: width 0.3s ease;
+    z-index: 20;
+  }
+
+  .slide-counter {
+    position: absolute;
+    top: 20px; right: 28px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    z-index: 20;
+  }
+
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    z-index: 20;
+    backdrop-filter: blur(6px);
+  }
+  .nav-btn:hover { background: var(--primary); }
+  .nav-prev { left: 20px; }
+  .nav-next { right: 20px; }
+
+  code {
+    background: var(--panel-2);
+    color: var(--accent);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  @media print {
+    body { overflow: visible; }
+    .nav-btn, .progress, .slide-counter { display: none !important; }
+    .slide {
+      display: flex !important;
+      position: relative;
+      page-break-after: always;
+      height: 100vh;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="deck">
+    <div class="progress" id="progress"></div>
+    <div class="slide-counter" id="counter">1 / 14</div>
+    <button class="nav-btn nav-prev" onclick="go(-1)">‹</button>
+    <button class="nav-btn nav-next" onclick="go(1)">›</button>
+
+    <!-- 1. 표지 -->
+    <section class="slide active">
+      <div class="kicker">AI Game Recommendation Service</div>
+      <h1>🧭 Game Compass</h1>
+      <p class="lead">
+        로블록스 게임과 마인크래프트 모드를, 대화하듯 물어보면 찾아주는 AI 추천 서비스
+      </p>
+      <div class="badge-row">
+        <span class="badge">Vue 3 · Vite</span>
+        <span class="badge">FastAPI · Python</span>
+        <span class="badge">SQLite</span>
+        <span class="badge">Roblox API</span>
+        <span class="badge">CurseForge API</span>
+      </div>
+      <div class="footer-note">Game Compass Team · 이정안 · 송영진 · 우은결</div>
+    </section>
+
+    <!-- 2. 문제 정의 -->
+    <section class="slide">
+      <div class="kicker">Problem</div>
+      <h2>왜 이 서비스가 필요할까요?</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>😵‍💫 선택지가 너무 많다</h3>
+          <p>로블록스에는 수백만 개의 게임이, CurseForge에는 수만 개의 마인크래프트 모드가 있습니다. 무엇부터 해야 할지 막막합니다.</p>
+        </div>
+        <div class="card">
+          <h3>🔍 검색은 성향을 모른다</h3>
+          <p>키워드 검색은 인기순/이름순 나열일 뿐, "친구랑 하기 좋은 게임"처럼 상황에 맞는 추천을 해주지 않습니다.</p>
+        </div>
+        <div class="card">
+          <h3>💬 편하게 물어보고 싶다</h3>
+          <p>메뉴를 클릭하며 필터를 맞추는 대신, 사람에게 물어보듯 자연스럽게 대화하며 추천받고 싶습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 서비스 소개 -->
+    <section class="slide">
+      <div class="kicker">Solution</div>
+      <h1>취향을 말하면, AI가 골라줍니다</h1>
+      <p class="lead">
+        <strong>Game Compass</strong>는 사용자의 성향과 취향을 분석해 최적의 마인크래프트 모드와
+        로블록스 게임을 추천해주는 대화형 AI 서비스입니다. 회원가입 없이, 무료로, 채팅하듯 이용할 수 있습니다.
+      </p>
+      <div class="stat-row">
+        <div class="stat"><div class="num">94</div><div class="label">로블록스 인기 게임</div></div>
+        <div class="stat"><div class="num">100</div><div class="label">마인크래프트 인기 모드</div></div>
+        <div class="stat"><div class="num">5</div><div class="label">최종 추천 결과 수</div></div>
+        <div class="stat"><div class="num">0원</div><div class="label">완전 무료 · 회원가입 불필요</div></div>
+      </div>
+    </section>
+
+    <!-- 4. 타겟 사용자 -->
+    <section class="slide">
+      <div class="kicker">Target</div>
+      <h2>누구를 위한 서비스인가요?</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>🎮 신규/라이트 유저</h3>
+          <p>로블록스나 마인크래프트를 처음 접하거나, 오랜만에 다시 시작하려는 사용자. 무엇부터 해야 할지 몰라 고민하는 분들.</p>
+        </div>
+        <div class="card">
+          <h3>👥 친구와 함께하고 싶은 유저</h3>
+          <p>"친구들이랑 다 같이 할 수 있는 게임", "혼자 편하게 즐길 콘텐츠"처럼 상황별 맞춤 추천이 필요한 사용자.</p>
+        </div>
+      </div>
+      <p class="lead" style="margin-top: 2rem;">공통점: 별도 계정 없이, 부담 없이 바로 추천을 받아보고 싶은 모든 사람.</p>
+    </section>
+
+    <!-- 5. 핵심 기능 1 -->
+    <section class="slide">
+      <div class="kicker">Core Feature 1 / 3</div>
+      <div class="pixel-row">
+        <div class="rb-block"></div>
+        <div>
+          <h2 style="margin-bottom:0.4rem;">🟥 로블록스 인기 상위 94개 게임</h2>
+          <p class="lead">로블록스 공식 API(games.roblox.com)로 조회한 실제 인기 게임 94종의 장르, 동시접속자 수,
+            누적 방문 수, 최대 인원 데이터를 기반으로 취향에 맞는 게임을 추천합니다.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:2rem; max-width: 720px;">
+        <h3>추천 기준</h3>
+        <ul>
+          <li>선호 장르: 어드벤처 / 시뮬레이터 / 롤플레이 / 오비(장애물) 등</li>
+          <li>인원 선호: 친구들과 대규모 멀티 vs 혼자/소규모 캐주얼</li>
+          <li>실제 동접자 수·인기도 기반 정렬로 상위 5개 최종 제시</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. 핵심 기능 2 -->
+    <section class="slide">
+      <div class="kicker">Core Feature 2 / 3</div>
+      <div class="pixel-row">
+        <div class="mc-creeper"></div>
+        <div>
+          <h2 style="margin-bottom:0.4rem;">🟩 CurseForge 상위 100개 모드</h2>
+          <p class="lead">세계적인 모드 플랫폼 CurseForge에서 엄선된 인기 상위 100가지 마인크래프트 모드 데이터를
+            기반으로, 건축·모험·공학 등 사용자의 성향에 맞는 최적의 모드를 추천합니다.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:2rem; max-width: 720px;">
+        <h3>추천 카테고리 (4종)</h3>
+        <ul>
+          <li>🛠️ 기술(Technology) — 자동화·공학 계열</li>
+          <li>🪄 마법(Magic) — 마법·주문 계열</li>
+          <li>🗺️ 모험/RPG(Adventure and RPG) — 탐험·전투 계열</li>
+          <li>📍 지도/정보(Map and Information) — 좌표·정보 표시 계열</li>
+        </ul>
+        <p style="margin-top:0.8rem;">모드로더(Forge/Fabric/NeoForge)는 구분 없이 통합 인기순, 결과 카드에 태그로만 표시됩니다.</p>
+      </div>
+    </section>
+
+    <!-- 7. 핵심 기능 3 -->
+    <section class="slide">
+      <div class="kicker">Core Feature 3 / 3</div>
+      <h2>🤖 쉬운 대화형 AI 가이드</h2>
+      <p class="lead">
+        "친구들이랑 다 같이 할 수 있는 시뮬레이터 알려줘!"처럼 자연스러운 문장으로 말하면,
+        AI가 필요한 정보(게임 종류 → 장르/카테고리 → 인원 선호)를 차례로 물어보며 대화를 이어가고,
+        마지막에 맞춤 추천 5개를 보여줍니다.
+      </p>
+      <div class="arch-flow">
+        <div class="arch-box"><h4>1. 인사 + 질문</h4><p>어떤 게임을 찾으시나요?</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><h4>2. 취향 파악</h4><p>장르 / 카테고리 / 인원 선호 대화로 수집</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><h4>3. 추천 5개 제시</h4><p>썸네일 · 지표 · 태그와 함께</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><h4>4. 새로 추천받기</h4><p>대화 초기화 후 재시작</p></div>
+      </div>
+    </section>
+
+    <!-- 8. 시스템 아키텍처 -->
+    <section class="slide">
+      <div class="kicker">Architecture</div>
+      <h2>시스템 구조</h2>
+      <div class="arch-flow">
+        <div class="arch-box">
+          <h4>Vue 3 + Vite (SPA)</h4>
+          <p>홈 화면 + 채팅 화면<br/>정적 사이트로 배포</p>
+        </div>
+        <div class="arch-arrow">⇄</div>
+        <div class="arch-box">
+          <h4>FastAPI (REST API)</h4>
+          <p>세션 기반 대화 상태 관리<br/>추천 매칭 알고리즘</p>
+        </div>
+        <div class="arch-arrow">⇄</div>
+        <div class="arch-box">
+          <h4>SQLite (SQLModel ORM)</h4>
+          <p>로블록스 94개 + 모드 100개<br/>정제된 메타데이터 저장</p>
+        </div>
+      </div>
+      <div class="arch-flow" style="margin-top:1rem;">
+        <div class="arch-box">
+          <h4>Roblox 공식 API</h4>
+          <p>games.roblox.com<br/>실시간 메타데이터 조회</p>
+        </div>
+        <div class="arch-box">
+          <h4>CurseForge API</h4>
+          <p>모드 검색 · 카테고리<br/>다운로드 수 조회</p>
+        </div>
+        <div class="arch-box">
+          <h4>사내 APIM Foundry (AI)</h4>
+          <p>자유 대화 의도 분석<br/>(규칙 기반 폴백 지원)</p>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:1.6rem;">프론트(SPA)와 백엔드(REST API)를 완전히 분리한 구조 — 백엔드는 정적 파일을 서빙하지 않습니다.</p>
+    </section>
+
+    <!-- 9. 기술 스택 상세 -->
+    <section class="slide">
+      <div class="kicker">Tech Spec</div>
+      <h2>🛠️ 기술 스펙 상세</h2>
+      <table class="tech-table">
+        <tr><th>영역</th><th>선택 기술</th><th>선정 이유</th></tr>
+        <tr><td class="name">프론트엔드</td><td>Vue 3 + Vite (JavaScript)</td><td>가벼운 SPA 프레임워크, 빠른 개발/HMR</td></tr>
+        <tr><td class="name">백엔드</td><td>Python + FastAPI</td><td>자동 OpenAPI 문서화, Pydantic 타입 검증, 비동기 지원</td></tr>
+        <tr><td class="name">ORM</td><td>SQLModel</td><td>FastAPI 제작자가 만든 경량 ORM, Pydantic과 자연 통합</td></tr>
+        <tr><td class="name">DB</td><td>SQLite</td><td>가벼운 구성, 별도 서버 불필요, 빠른 조회</td></tr>
+        <tr><td class="name">AI 연동</td><td>사내 APIM Foundry 프록시 (+ 규칙 기반 폴백)</td><td>자유 텍스트 의도 추출, 키 미설정 시 자동 대체</td></tr>
+        <tr><td class="name">배포</td><td>Render (Static Site + Web Service)</td><td>단일 PaaS로 프론트/백엔드/DB 모두 배포</td></tr>
+        <tr><td class="name">UI 디자인</td><td>Gemini AI 협업 디자인 (CSS 픽셀아트)</td><td>가독성 높은 모던 인터페이스</td></tr>
+      </table>
+    </section>
+
+    <!-- 10. 개발 프로세스 -->
+    <section class="slide">
+      <div class="kicker">Process</div>
+      <h2>💬 어떻게 만들었나요?</h2>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1</div>
+          <div>
+            <h4>Wayfinder 방식 인터뷰로 스펙 확정</h4>
+            <p>Copilot CLI + Matt Pocock/Wayfinder 방식의 대화형 프롬프트 인터뷰로 세부 요구사항을 GitHub 이슈(#1~#13)로 정리, <code>docs/spec.md</code>로 확정.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">2</div>
+          <div>
+            <h4>MVP 풀스택 구현</h4>
+            <p>SQLModel 데이터 모델 → FastAPI 라우터 → Vue 챗봇형 UI까지 백엔드/프론트엔드 전 영역을 한 번에 구축, 로컬 E2E 검증.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div>
+            <h4>Fleet 모드 — 병렬 에이전트 작업</h4>
+            <p>실제 Roblox universe ID 59개 확보, CurseForge 카테고리 매핑, Render 배포 설정을 3개 백그라운드 에이전트로 동시 진행.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">4</div>
+          <div>
+            <h4>자유 대화형 AI + 디자인 통합</h4>
+            <p>칩 클릭식 UI를 자유 텍스트 채팅으로 전환하고, 팀원이 제작한 랜딩/채팅 디자인을 Vue 컴포넌트로 이식.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. 데모 흐름 -->
+    <section class="slide">
+      <div class="kicker">Live Demo</div>
+      <h2>📱 데모 시나리오</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>1️⃣ 홈 화면</h3>
+          <p>서비스 소개, 기능 카드(픽셀아트), 기술 스펙 아코디언, 팀 소개를 훑어봅니다.</p>
+        </div>
+        <div class="card">
+          <h3>2️⃣ "AI 대화 시작" 클릭</h3>
+          <p>네브바 또는 히어로 버튼으로 채팅 화면(플로팅 네브바 + 글래스 카드)으로 전환합니다.</p>
+        </div>
+        <div class="card">
+          <h3>3️⃣ 자연스러운 대화</h3>
+          <p>"친구들이랑 하기 좋은 로블록스 게임 알려줘"처럼 자유롭게 입력하면 AI가 후속 질문을 이어갑니다.</p>
+        </div>
+        <div class="card">
+          <h3>4️⃣ 추천 결과 확인</h3>
+          <p>썸네일·동접자 수·태그가 포함된 추천 5개를 확인하고, "새로 추천받기"로 재시작합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. 향후 계획 -->
+    <section class="slide">
+      <div class="kicker">Roadmap</div>
+      <h2>🚀 앞으로의 계획</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>🧠 AI 실시간 연결 고도화</h3>
+          <p>사내 APIM Foundry 연동을 상시 활성화하고, 더 다양한 표현/맥락을 이해하도록 프롬프트를 고도화합니다.</p>
+        </div>
+        <div class="card">
+          <h3>🌙 매일 밤 순위 자동 업데이트</h3>
+          <p>사용자 접속이 몰리는 낮 시간대 응답 속도 저하를 막기 위해, 대용량 순위 갱신은 매일 자정 배치로 처리합니다.</p>
+        </div>
+        <div class="card">
+          <h3>☁️ Render 정식 배포</h3>
+          <p><code>render.yaml</code> 블루프린트로 Static Site + Web Service + Persistent Disk를 구성해 실제 서비스로 오픈합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. 팀 소개 -->
+    <section class="slide">
+      <div class="kicker">Team</div>
+      <h2>프로젝트 참여자</h2>
+      <div class="team-grid">
+        <div class="team-card"><div class="team-avatar">LEE</div><h3>이정안</h3><div class="role">Project</div></div>
+        <div class="team-card"><div class="team-avatar">SONG</div><h3>송영진</h3><div class="role">Project</div></div>
+        <div class="team-card"><div class="team-avatar">WOO</div><h3>우은결</h3><div class="role">Project</div></div>
+      </div>
+    </section>
+
+    <!-- 14. 감사합니다 -->
+    <section class="slide">
+      <h1>감사합니다 🧭</h1>
+      <p class="lead">Game Compass — 당신의 취향에 딱 맞는 게임 길잡이</p>
+      <div class="footer-note">Q&amp;A</div>
+    </section>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    let idx = 0;
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+      document.getElementById('counter').textContent = `${idx + 1} / ${slides.length}`;
+      document.getElementById('progress').style.width = `${((idx + 1) / slides.length) * 100}%`;
+    }
+
+    function go(delta) {
+      idx = Math.min(Math.max(idx + delta, 0), slides.length - 1);
+      render();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(1);
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) go(-1);
+    });
+
+    render();
+  </script>
+</body>
+</html>
