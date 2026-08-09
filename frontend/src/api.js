@@ -29,10 +29,11 @@ export function submitMinecraftSurvey(payload) {
   return request('/api/survey/minecraft', { method: 'POST', body: JSON.stringify(payload) })
 }
 
-export function sendChatMessage(message) {
+export function sendChatMessage(message, msApiKey = null) {
+  const key = msApiKey || localStorage.getItem('ms_api_key') || ''
   return request('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, ms_api_key: key }),
   })
 }
 

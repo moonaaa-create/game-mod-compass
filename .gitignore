@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+__pycache__
+*.pyc
+.venv
+venv
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Environment & Temp
+.env
+.DS_Store
+brain/
+frontend/brain/
+.tempmediaStorage/

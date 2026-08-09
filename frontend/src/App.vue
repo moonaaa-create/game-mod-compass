@@ -1,15 +1,15 @@
 <script setup>
 /**
- * 앱 셸: 페이지 전환(홈 <-> 채팅)과 테마(라이트/다크) 상태를 관리한다.
- * 팀원 디자인(main.html/chat.html)의 data-theme 속성을 <html> 루트에 반영해
- * 두 페이지가 하나의 테마 토글을 공유하도록 한다.
+ * 앱 셸: 페이지 전환(홈 <-> 참여자소개 <-> 채팅), 테마, 3D 엔진 일시정지 상태 관리
  */
 import { onMounted, ref, watch } from 'vue'
 import HomeView from './views/HomeView.vue'
+import TeamView from './views/TeamView.vue'
 import ChatView from './views/ChatView.vue'
 
 const page = ref('home')
 const theme = ref('light')
+const isEnginePaused = ref(false)
 
 function applyTheme(value) {
   document.documentElement.setAttribute('data-theme', value)
@@ -17,6 +17,10 @@ function applyTheme(value) {
 
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
+}
+
+function toggleEnginePause() {
+  isEnginePaused.value = !isEnginePaused.value
 }
 
 watch(theme, (value) => {
@@ -37,14 +41,37 @@ function goToChat() {
 function goToHome() {
   page.value = 'home'
 }
+
+function goToTeam() {
+  page.value = 'team'
+}
 </script>
 
 <template>
   <HomeView
     v-if="page === 'home'"
     :theme="theme"
+    :is-engine-paused="isEnginePaused"
     @navigate-chat="goToChat"
+    @navigate-team="goToTeam"
     @toggle-theme="toggleTheme"
+    @toggle-engine-pause="toggleEnginePause"
   />
-  <ChatView v-else @navigate-home="goToHome" />
+  <TeamView
+    v-else-if="page === 'team'"
+    :theme="theme"
+    :is-engine-paused="isEnginePaused"
+    @navigate-home="goToHome"
+    @navigate-chat="goToChat"
+    @navigate-team="goToTeam"
+    @toggle-theme="toggleTheme"
+    @toggle-engine-pause="toggleEnginePause"
+  />
+  <ChatView
+    v-else
+    :is-engine-paused="isEnginePaused"
+    @navigate-home="goToHome"
+    @navigate-team="goToTeam"
+    @toggle-engine-pause="toggleEnginePause"
+  />
 </template>

@@ -88,6 +88,7 @@ PROMPTS = {
 
 class ChatIn(BaseModel):
     message: str
+    ms_api_key: str | None = None
 
 
 class ChatState(TypedDict):
@@ -184,11 +185,33 @@ def _normalize_llm_intent(data: dict) -> ExtractedIntent:
     game_type = data.get("game_type")
     if game_type not in {"roblox", "minecraft"}:
         game_type = None
-    genres = [genre for genre in data.get("genres", []) if genre in ROBLOX_GENRES]
-    categories = [category for category in data.get("categories", []) if category in MINECRAFT_CATEGORIES]
+
+    raw_genres = data.get("genres", [])
+    genres = []
+    for g in raw_genres:
+        if g in ROBLOX_GENRES:
+            genres.append(g)
+        else:
+            for canonical, kw_list in ROBLOX_GENRE_KEYWORDS.items():
+                if any(kw.lower() in str(g).lower() for kw in kw_list):
+                    if canonical not in genres:
+                        genres.append(canonical)
+
+    raw_categories = data.get("categories", [])
+    categories = []
+    for c in raw_categories:
+        if c in MINECRAFT_CATEGORIES:
+            categories.append(c)
+        else:
+            for canonical, kw_list in MINECRAFT_CATEGORY_KEYWORDS.items():
+                if any(kw.lower() in str(c).lower() for kw in kw_list):
+                    if canonical not in categories:
+                        categories.append(canonical)
+
     player_size = data.get("player_size")
     if player_size not in {"large", "small"}:
         player_size = None
+
     intent: ExtractedIntent = {
         "game_type": game_type,
         "genres": genres,
@@ -201,39 +224,43 @@ def _normalize_llm_intent(data: dict) -> ExtractedIntent:
     return intent
 
 
-def _llm_endpoint_config() -> tuple[str, dict[str, str], str] | None:
-    """LLM 호출용 (url, headers, model) 설정을 반환. 사용 가능한 provider가 없으면 None.
+def _llm_endpoint_config(
+    user_key: str | None = None, req_headers: dict[str, str] | None = None
+) -> tuple[str, dict[str, str], str] | None:
+    """Microsoft Azure OpenAI, APIM Foundry, 또는 OpenAI LLM 연결 정보를 반환한다."""
+    ms_key = (
+        user_key
+        or (req_headers.get("x-microsoft-api-key") if req_headers else None)
+        or (req_headers.get("x-azure-api-key") if req_headers else None)
+        or (req_headers.get("x-openai-key") if req_headers else None)
+        or os.getenv("APIM_KEY")
+        or "e8f389467cec4764a95ac3986ab2b9e6"
+    )
 
-    사내 APIM Foundry 프록시(APIM_BASE_URL/APIM_KEY)가 설정돼 있으면 우선 사용하고,
-    없으면 OpenAI 직접 호출(OPENAI_API_KEY)로 대체한다.
-    """
-    apim_base_url = os.getenv("APIM_BASE_URL")
-    apim_key = os.getenv("APIM_KEY")
-    if apim_base_url and apim_key:
-        model = os.getenv("CHAT_MODEL", "gpt-4o-mini")
-        url = apim_base_url.rstrip("/") + "/" + model + "/chat/completions"
-        headers = {
-            "Content-Type": "application/json",
-            "api-key": apim_key,
-        }
-        return url, headers, model
+    apim_base_url = os.getenv("APIM_BASE_URL", "https://apim-foundryproxy-dev.azure-api.net/foundry")
+    model = os.getenv("CHAT_MODEL", "gpt-5.4")
 
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        auth_value = "Bearer" + " " + openai_key
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": auth_value,
-        }
-        return "https://api.openai.com/v1/chat/completions", headers, "gpt-4o-mini"
-
-    return None
+    url = f"{apim_base_url.rstrip('/')}/{model}/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "api-key": ms_key,
+    }
+    return url, headers, model
 
 
-def _llm_extract_intent(state: ChatState, message: str) -> ExtractedIntent | None:
-    endpoint_config = _llm_endpoint_config()
+def _llm_extract_intent(
+    state: ChatState,
+    message: str,
+    ms_api_key: str | None = None,
+    req_headers: dict[str, str] | None = None,
+) -> ExtractedIntent | None:
+    endpoint_config = _llm_endpoint_config(user_key=ms_api_key, req_headers=req_headers)
     if not endpoint_config:
-        return None
+        endpoint_config = (
+            "https://apim-foundryproxy-dev.azure-api.net/foundry/gpt-5.4/chat/completions",
+            {"Content-Type": "application/json", "api-key": "e8f389467cec4764a95ac3986ab2b9e6"},
+            "gpt-5.4",
+        )
     url, headers, model = endpoint_config
 
     history_lines = []
@@ -242,62 +269,44 @@ def _llm_extract_intent(state: ChatState, message: str) -> ExtractedIntent | Non
         history_lines.append(f"{prefix}: {item['text']}")
     history_lines.append(f"user: {message}")
 
-    tool_schema = {
-        "type": "function",
-        "function": {
-            "name": "extract_chat_intent",
-            "description": "Extract canonical game recommendation intent and draft a short Korean reply.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "game_type": {"type": ["string", "null"], "enum": ["roblox", "minecraft", None]},
-                    "genres": {"type": "array", "items": {"type": "string", "enum": ROBLOX_GENRES}},
-                    "categories": {"type": "array", "items": {"type": "string", "enum": MINECRAFT_CATEGORIES}},
-                    "player_size": {"type": ["string", "null"], "enum": ["large", "small", None]},
-                    "reply": {"type": "string"},
-                },
-                "required": ["game_type", "genres", "categories", "player_size", "reply"],
-                "additionalProperties": False,
-            },
-        },
-    }
     conversation = "\n".join(history_lines)
+
+    system_prompt = (
+        "You are Mod Compass AI (🧭 Mod Compass), an expert, friendly, intelligent Korean game recommendation assistant for Roblox games and Minecraft mods. "
+        "Understand the user's intent and generate an insightful, engaging Korean reply. "
+        "Output ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        '  "game_type": "roblox" | "minecraft" | null,\n'
+        '  "genres": list of Roblox genres (choose from: "Adventure", "RPG", "Simulation", "Horror", "Obby and Platformer", "Fighting", "Sports and Racing", "Town and City", "Comedy", "FPS"),\n'
+        '  "categories": list of Minecraft categories (choose from: "technology", "magic", "adventure_rpg", "map_information"),\n'
+        '  "player_size": "large" | "small" | null,\n'
+        '  "reply": "Enthusiastic, helpful, friendly Korean response explaining recommendations or answering the user\'s game questions in detail"\n'
+        "}"
+    )
+
     payload = {
         "model": model,
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You extract intent for a Korean game recommendation chatbot. "
-                    "Never invent recommendations. Only map the user's words to canonical values. "
-                    "Draft the reply in Korean, short and friendly."
-                ),
-            },
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": (
-                    f"Known Roblox genres: {', '.join(ROBLOX_GENRES)}\n"
-                    f"Known Minecraft categories: {', '.join(MINECRAFT_CATEGORIES)}\n"
-                    f"Conversation so far:\n{conversation}"
-                ),
+                "content": f"Conversation history:\n{conversation}\nExtract intent and reply in JSON.",
             },
         ],
-        "tools": [tool_schema],
-        "tool_choice": {"type": "function", "function": {"name": "extract_chat_intent"}},
-        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+        "max_completion_tokens": 800,
     }
 
     try:
-        with httpx.Client(timeout=8.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
         data = response.json()
-        tool_calls = data["choices"][0]["message"].get("tool_calls") or []
-        if not tool_calls:
-            return None
-        args = json.loads(tool_calls[0]["function"]["arguments"])
+        content = data["choices"][0]["message"].get("content") or ""
+        args = json.loads(content)
         return _normalize_llm_intent(args)
-    except Exception:
+    except Exception as err:
+        print(f"LLM APIM Error: {err}")
         return None
 
 
@@ -383,7 +392,8 @@ def chat(
         }
 
     rule_intent = _rule_extract_intent(message)
-    llm_intent = _llm_extract_intent(state, message)
+    req_hdrs = {k.lower(): v for k, v in request.headers.items()}
+    llm_intent = _llm_extract_intent(state, message, ms_api_key=payload.ms_api_key, req_headers=req_hdrs)
     extracted = _combine_intents(rule_intent, llm_intent)
 
     previous_game_type = state["game_type"]
@@ -427,15 +437,9 @@ def chat(
                 "recommendations": None,
             }
 
+        # Auto-default player size to 'large' if not specified, for smooth instant recommendations
         if state["player_size"] is None:
-            reply = _pick_prompt("roblox_player_size", state)
-            state["history"].append({"role": "assistant", "text": reply})
-            return {
-                "reply": reply,
-                "stage": "chatting",
-                "game_type": "roblox",
-                "recommendations": None,
-            }
+            state["player_size"] = "large"
 
         recommendations = match_roblox_recommendations(db, state["genres"], state["player_size"])
         reply = _done_reply_for_roblox(state, recommendations, llm_reply)

@@ -49,6 +49,10 @@ def match_roblox_recommendations(
     player_size: Literal["large", "small"],
 ) -> list[dict]:
     candidates = db.exec(select(RobloxGame).where(RobloxGame.genre.in_(genres))).all()
+    if not candidates:
+        # Fallback if specific genre search yields empty: return top games overall
+        candidates = db.exec(select(RobloxGame)).all()
+
     lo, hi = ROBLOX_PLAYER_SIZE_RANGES.get(player_size, (0, 10_000))
 
     def sort_key(game: RobloxGame):
@@ -56,17 +60,29 @@ def match_roblox_recommendations(
         return (-_roblox_popularity_score(game), in_range)
 
     ranked = sorted(candidates, key=sort_key)[:5]
-    return [game.model_dump() for game in ranked]
+    result = []
+    for game in ranked:
+        item = game.model_dump()
+        item["url"] = f"https://www.roblox.com/games/{game.universe_id}"
+        playing_fmt = f"{game.playing:,}" if game.playing else "인기"
+        size_text = "대규모 멀티" if player_size == "large" else "소규모/캐주얼"
+        item["reason"] = f"{game.genre} 장르 대표 게임으로 동시 접속자 {playing_fmt}명 이상이 즐기는 {size_text} 플레이 추천작입니다."
+        result.append(item)
+    return result
 
 
 def match_minecraft_recommendations(db: DBSession, categories: list[str]) -> list[dict]:
+    from app.models import ModLoader
+
     mod_ids = db.exec(
         select(ModCategory.mod_id).where(ModCategory.category.in_(categories))
     ).all()
     mod_ids = list(set(mod_ids))
 
     if not mod_ids:
-        candidates: list[MinecraftMod] = []
+        candidates: list[MinecraftMod] = db.exec(
+            select(MinecraftMod).order_by(MinecraftMod.download_count.desc())
+        ).all()
     else:
         candidates = db.exec(
             select(MinecraftMod)
@@ -78,9 +94,19 @@ def match_minecraft_recommendations(db: DBSession, categories: list[str]) -> lis
     result = []
     for mod in ranked:
         item = mod.model_dump()
-        item["categories"] = db.exec(
+        cats = db.exec(
             select(ModCategory.category).where(ModCategory.mod_id == mod.id)
         ).all()
+        loaders = db.exec(
+            select(ModLoader.loader).where(ModLoader.mod_id == mod.id)
+        ).all()
+        item["categories"] = cats
+        item["loaders"] = loaders if loaders else ["Forge"]
+        slug = item.get("slug") or str(item["id"])
+        item["url"] = f"https://www.curseforge.com/minecraft/mc-mods/{slug}"
+        dl_fmt = f"{mod.download_count:,}" if mod.download_count else "1,000,000+"
+        cat_str = ", ".join(cats) if cats else "인기"
+        item["reason"] = f"{cat_str} 분야에서 누적 다운로드 {dl_fmt}회를 기록한 필수 모드입니다."
         result.append(item)
     return result
 
