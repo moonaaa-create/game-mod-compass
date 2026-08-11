@@ -571,9 +571,9 @@ onMounted(() => {
   width: 100%;
   max-width: 920px;
   min-height: calc(100vh - 140px);
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
@@ -671,9 +671,9 @@ onMounted(() => {
 }
 
 .chat-bubble.bot {
-  background-color: #26354d;
+  background-color: #334155;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-left-radius: 4px;
 }
 
@@ -1180,9 +1180,9 @@ onMounted(() => {
 }
 
 .key-field-input {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 28px;
   padding: 12px 16px;
   color: #ffffff;
   font-size: 0.95rem;
