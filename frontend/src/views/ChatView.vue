@@ -8,11 +8,9 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { resetChat as apiResetChat, sendChatMessage as apiSendChatMessage } from '../api.js'
 
-const emit = defineEmits(['navigate-home', 'navigate-team', 'toggle-engine-pause'])
+const emit = defineEmits(['navigate-home', 'navigate-team'])
 
-const props = defineProps({
-  isEnginePaused: { type: Boolean, default: false },
-})
+const props = defineProps({})
 
 const INITIAL_SUGGESTIONS = [
   '🚀 로블록스 공포 게임 추천해줘',
@@ -270,22 +268,7 @@ function copyRecommendationList() {
   })
 }
 
-const showKeyModal = ref(false)
-const msApiKey = ref('')
-const hasSavedKey = computed(() => !!msApiKey.value.trim())
-
-function saveMsKey() {
-  localStorage.setItem('ms_api_key', msApiKey.value.trim())
-  showKeyModal.value = false
-}
-
-function clearMsKey() {
-  msApiKey.value = ''
-  localStorage.removeItem('ms_api_key')
-}
-
 onMounted(() => {
-  msApiKey.value = localStorage.getItem('ms_api_key') || ''
   initializeConversation()
 })
 </script>
@@ -305,23 +288,7 @@ onMounted(() => {
           <button class="pill-btn" type="button" @click="emit('navigate-team')">
             👥 참여자 소개
           </button>
-          <button
-            class="pill-btn key-btn"
-            :class="{ active: hasSavedKey }"
-            type="button"
-            @click="showKeyModal = true"
-          >
-            {{ hasSavedKey ? '🔑 MS API 연결됨' : '🔑 MS API Key' }}
-          </button>
-          <button
-            class="pill-btn engine-btn"
-            :class="{ paused: props.isEnginePaused }"
-            type="button"
-            @click="emit('toggle-engine-pause')"
-            :title="props.isEnginePaused ? '3D 배경 재생' : '3D 배경 일시정지 (발열 및 배터리 절약 모드)'"
-          >
-            {{ props.isEnginePaused ? '▶️ 3D 재생' : '⏸️ 3D 일시정지' }}
-          </button>
+
           <button class="pill-btn" type="button" :disabled="isResetting" @click="restartChat">
             🔄 새로 추천받기
           </button>
@@ -507,49 +474,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Microsoft API Key 설정 모달 -->
-    <div v-if="showKeyModal" class="modal-backdrop" @click.self="showKeyModal = false">
-      <div class="modal-card ms-key-modal">
-        <div class="modal-header">
-          <h3 class="modal-title">🔑 Microsoft AI API Key 연결</h3>
-          <button class="modal-close" type="button" @click="showKeyModal = false">✕</button>
-        </div>
 
-        <div class="modal-body">
-          <p class="modal-desc">
-            마이크로소프트(Azure OpenAI Service 또는 GitHub Models)에서 발급받은 API 키를 입력하시면
-            AI 챗봇이 Microsoft AI 모델 파이프라인과 직접 연동됩니다.
-          </p>
-
-          <div class="key-field-group">
-            <label class="key-field-label" for="ms-api-key-input">Microsoft API Key (Azure OpenAI / GitHub Models)</label>
-            <input
-              id="ms-api-key-input"
-              v-model="msApiKey"
-              type="password"
-              class="key-field-input"
-              placeholder="API 키를 입력하세요 (예: Azure OpenAI 또는 GitHub Models Key)"
-            />
-          </div>
-
-          <div v-if="hasSavedKey" class="key-status-alert success">
-            ✅ Microsoft API Key가 연결되었습니다!
-          </div>
-          <div v-else class="key-status-alert info">
-            💡 API 키가 없는 경우에도 기본 지능형 하이브리드 엔진으로 대화가 가능합니다.
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button v-if="hasSavedKey" class="modal-action-btn danger" type="button" @click="clearMsKey">
-            🗑️ 키 삭제
-          </button>
-          <button class="modal-action-btn primary" type="button" @click="saveMsKey">
-            💾 저장 및 연결
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -646,7 +571,7 @@ onMounted(() => {
   width: 100%;
   max-width: 920px;
   min-height: calc(100vh - 140px);
-  background: rgba(30, 41, 59, 0.75);
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
@@ -735,26 +660,28 @@ onMounted(() => {
 }
 
 .chat-bubble {
-  padding: 14px 20px;
+  padding: 16px 22px;
   border-radius: 20px;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 1.05rem;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: keep-all;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  letter-spacing: -0.2px;
 }
 
 .chat-bubble.bot {
-  background-color: #1e293b;
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #26354d;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-bottom-left-radius: 4px;
 }
 
 .chat-bubble.user {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #ffffff;
   border-bottom-right-radius: 4px;
+  font-weight: 500;
 }
 
 .chat-options {
@@ -1285,5 +1212,63 @@ onMounted(() => {
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
   color: #93c5fd;
+}
+
+@media (max-width: 768px) {
+  .chat-page {
+    padding: 80px 10px 10px;
+  }
+  .chat-pill-nav {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pill-logo {
+    font-size: 0.95rem;
+  }
+  .pill-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+  .chat-shell {
+    min-height: calc(100vh - 120px);
+    border-radius: 16px;
+  }
+  .hero-panel {
+    padding: 14px 18px;
+  }
+  .app-title {
+    font-size: 1.15rem;
+  }
+  .chat-log {
+    padding: 16px 12px;
+  }
+  .chat-input-area {
+    padding: 12px;
+  }
+  .chat-textarea {
+    font-size: 0.9rem;
+    padding: 12px 48px 12px 14px;
+  }
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    right: 8px;
+    bottom: 8px;
+  }
+  .chat-bubble {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+  .ai-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .modal-panel {
+    width: 90%;
+    margin: 20px;
+    padding: 20px;
+  }
 }
 </style>

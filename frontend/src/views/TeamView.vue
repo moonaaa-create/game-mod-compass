@@ -413,4 +413,29 @@ const teamMembers = [
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(8px);
 }
+
+@media (max-width: 768px) {
+  .team-content {
+    padding: 80px 1.2rem 2rem;
+  }
+  .team-hero-card {
+    padding: 2rem 1.5rem;
+  }
+  .team-hero-card h1 {
+    font-size: 1.8rem;
+  }
+  .hero-sub {
+    font-size: 0.95rem;
+  }
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+  .nav-links {
+    gap: 0.4rem;
+  }
+  .nav-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+}
 </style>
