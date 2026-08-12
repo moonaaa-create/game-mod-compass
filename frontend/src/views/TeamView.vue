@@ -4,6 +4,7 @@
  * 유스AI프로젝트:D 2기 2조 팀 소개 페이지
  */
 import VoxelTerrainCanvas from '../components/VoxelTerrainCanvas.vue'
+import { ref } from 'vue'
 
 const emit = defineEmits(['navigate-home', 'navigate-chat', 'navigate-team', 'toggle-theme', 'toggle-engine-pause'])
 
@@ -14,6 +15,11 @@ const props = defineProps({
 
 function toggleTheme() {
   emit('toggle-theme')
+}
+
+const mobileMenuOpen = ref(false)
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value
 }
 
 const teamMembers = [
@@ -55,14 +61,17 @@ const teamMembers = [
         <button class="logo" type="button" @click="emit('navigate-home')">
           🧭 Mod Compass
         </button>
-        <nav class="nav-links">
-          <button class="nav-btn" type="button" @click="emit('navigate-home')">
+        <button class="mobile-menu-toggle" type="button" @click="toggleMobileMenu" :aria-expanded="mobileMenuOpen">
+          {{ mobileMenuOpen ? '✕' : '☰' }}
+        </button>
+        <nav class="nav-links" :class="{ 'is-open': mobileMenuOpen }">
+          <button class="nav-btn" type="button" @click="emit('navigate-home'); mobileMenuOpen = false">
             프로젝트 소개
           </button>
-          <button class="nav-btn active" type="button" @click="emit('navigate-team')">
+          <button class="nav-btn active" type="button" @click="emit('navigate-team'); mobileMenuOpen = false">
             참여자 소개
           </button>
-          <button class="nav-btn highlight" type="button" @click="emit('navigate-chat')">
+          <button class="nav-btn highlight" type="button" @click="emit('navigate-chat'); mobileMenuOpen = false">
             AI 대화 시작 ✨
           </button>
           <button
@@ -173,6 +182,10 @@ const teamMembers = [
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+}
+
+.mobile-menu-toggle {
+  display: none;
 }
 
 .nav-btn {
@@ -416,7 +429,7 @@ const teamMembers = [
 
 @media (max-width: 768px) {
   .team-content {
-    padding: 80px 1.2rem 2rem;
+    padding: 24px 1.1rem 2rem;
   }
   .team-hero-card {
     padding: 2rem 1.5rem;
@@ -430,12 +443,64 @@ const teamMembers = [
   .team-grid {
     grid-template-columns: 1fr;
   }
-  .nav-links {
-    gap: 0.4rem;
+
+  .overworld-navbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    padding: 10px 14px;
+    border-left: none;
+    border-right: none;
+    border-top: none;
   }
-  .nav-btn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.85rem;
+
+  .header-container {
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .nav-links.is-open {
+    display: flex;
+  }
+
+  .nav-links .nav-btn,
+  .nav-links .theme-toggle-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.9rem;
   }
 }
 </style>

@@ -43,12 +43,12 @@ def build_catalog_context(db: DBSession) -> str:
 
     mod_lines = [
         f"- {m.name} | 다운로드 {m.download_count:,}회 | 요약: {m.summary or '정보 없음'} "
-        f"| 링크: https://www.curseforge.com/minecraft/mc-mods/search?search={quote(m.name)}"
+        f"| 링크: https://www.curseforge.com/minecraft/mc-mods?search={quote(m.name)}"
         for m in top_mods
     ]
     game_lines = [
         f"- {g.name} | 장르: {g.genre} | 동시 접속 {g.playing:,}명 "
-        f"| 링크: https://www.roblox.com/search/games?Keyword={quote(g.name)}"
+        f"| 링크: https://www.roblox.com/discover/?Keyword={quote(g.name)}"
         for g in top_games
     ]
 
@@ -70,10 +70,14 @@ def build_system_prompt(catalog_context: str) -> str:
 2. 정해진 틀에 박힌 답을 반복하지 말고, 사용자의 이전 발언과 취향을 기억해서 자연스럽게 이어지는 대화를 해.
 3. 추천할 때는 아래 실시간 카탈로그 데이터를 우선 참고해서 실제로 사이트에 있는 항목 위주로 추천하고,
    카탈로그에 없는 유명한 것도 필요하면 보조적으로 언급해도 돼.
-4. **추천하는 모드/게임에는 반드시 카탈로그에 있는 "링크:" 뒤의 URL을 그대로 함께 걸어줘.**
-   마크다운 링크 문법 [이름](URL) 형태로 자연스럽게 문장 안에 넣어.
+4. 추천하는 모드/게임에는 카탈로그에 있는 "링크:" 뒤의 URL을 그대로 함께 걸어줘.
+   마크다운 링크 문법 [이름](URL) 형태로 자연스럽게 문장 안에 넣어. 없는 URL은 절대 지어내지 마.
 5. 매번 같은 형식/같은 목록을 복붙하지 말고, 직전 대화 맥락에 맞춰 답변 내용과 추천 항목을 다르게 구성해.
-6. 답변은 간결한 존댓말로, 필요하면 짧은 불릿으로 정리해.
+6. 말투는 사용자를 그대로 따라가: 사용자가 반말로 물으면 편하고 친근한 반말로, 존댓말로 물으면 정중한
+   존댓말로 답해. 첫 메시지처럼 아직 말투를 모를 땐 존댓말로 시작해.
+7. **텍스트** 같은 마크다운 굵게 표시는 절대 쓰지 마. 별표(*) 없이 순수 텍스트로만 답해.
+8. 답변은 최대한 짧고 간결하게, 2~4줄 이내로 핵심만 전달해. 추천은 보통 1~3개만 콕 집어서 제시하고,
+   장황한 설명이나 긴 목록은 피해. 답변이 중간에 끊기지 않도록 항상 완결된 문장으로 마무리해.
 
 {catalog_context}
 """
@@ -133,10 +137,16 @@ async def chat(
         completion = await client.chat.completions.create(
             model=model,
             messages=history,
-            max_completion_tokens=500,
+            max_completion_tokens=320,
             temperature=0.9
         )
         reply = completion.choices[0].message.content
+        # 모델이 지시를 무시하고 마크다운 굵게 표시(**)를 붙이는 경우를 대비한 안전장치
+        reply = reply.replace("**", "")
+        finish_reason = completion.choices[0].finish_reason
+        # 토큰 제한으로 문장이 중간에 끊긴 경우, 어색하게 잘리지 않도록 자연스럽게 마무리
+        if finish_reason == "length" and reply and reply[-1] not in ".!?…\n":
+            reply = reply.rstrip() + "…"
         history.append({"role": "assistant", "content": reply})
 
         return {"reply": reply}

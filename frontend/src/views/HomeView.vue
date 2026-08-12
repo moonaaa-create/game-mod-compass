@@ -16,6 +16,11 @@ const props = defineProps({
 })
 
 const activeTech = ref(null)
+const mobileMenuOpen = ref(false)
+
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
 
 // 모바일 전용 섹션 아코디언 토글 상태 관리 (기본적으로 첫번째는 펼치고 나머지는 접어 가독성 확보)
 const mobileSections = reactive({
@@ -68,12 +73,15 @@ function onCanvasClick() {
         <a class="logo" href="#about">
           🧭 Mod Compass
         </a>
-        <nav class="nav-links">
-          <a href="#about" class="nav-btn">프로젝트 소개</a>
-          <button class="nav-btn" type="button" @click="emit('navigate-team')">
+        <button class="mobile-menu-toggle" type="button" @click="toggleMobileMenu" :aria-expanded="mobileMenuOpen">
+          {{ mobileMenuOpen ? '✕' : '☰' }}
+        </button>
+        <nav class="nav-links" :class="{ 'is-open': mobileMenuOpen }">
+          <a href="#about" class="nav-btn" @click="mobileMenuOpen = false">프로젝트 소개</a>
+          <button class="nav-btn" type="button" @click="emit('navigate-team'); mobileMenuOpen = false">
             참여자 소개
           </button>
-          <button class="nav-btn highlight" type="button" @click="emit('navigate-chat')">
+          <button class="nav-btn highlight" type="button" @click="emit('navigate-chat'); mobileMenuOpen = false">
             AI 대화 시작 ✨
           </button>
           <button
@@ -548,6 +556,10 @@ function onCanvasClick() {
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+}
+
+.mobile-menu-toggle {
+  display: none;
 }
 
 .nav-btn {
@@ -1518,6 +1530,77 @@ function onCanvasClick() {
   .nav-btn {
     padding: 0.4rem 0.6rem !important;
     font-size: 0.8rem !important;
+  }
+}
+
+/* ===== 모바일 네비게이션 (햄버거 메뉴로 전환하여 본문과 겹치지 않도록 처리) ===== */
+@media (max-width: 768px) {
+  .overworld-navbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    padding: 10px 14px;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+
+  .header-container {
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem !important;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .nav-links.is-open {
+    display: flex;
+  }
+
+  .nav-links .nav-btn,
+  .nav-links .theme-toggle-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.65rem 0.8rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* 네비바가 sticky 흐름으로 바뀌었으므로 본문 상단 여백을 되돌려 겹침 방지 */
+  .overworld-content {
+    padding: 24px 1rem 3rem !important;
+  }
+
+  .hero-section {
+    margin-top: 0.5rem !important;
   }
 }
 </style>

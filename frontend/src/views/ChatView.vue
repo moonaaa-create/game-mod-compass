@@ -51,6 +51,8 @@ function formatMessage(text) {
   safe = safe.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, (m, pre, url) => {
     return `${pre}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
   })
+  // 굵게 표시용 마크다운(**텍스트**)은 어색한 AI 말투 느낌을 주므로 별표만 제거하고 일반 텍스트로 표시
+  safe = safe.replace(/\*\*(.+?)\*\*/g, '$1')
   return safe.replace(/\n/g, '<br>')
 }
 
@@ -96,6 +98,9 @@ async function restartChat() {
 }
 
 function handleKeydown(e) {
+  // 한글 등 IME 조합 중(글자를 완성하기 전) Enter가 눌리면 마지막 글자가 씹히고
+  // 전송되는 문제를 막기 위해 조합 중일 때는 전송하지 않음
+  if (e.isComposing || e.keyCode === 229) return
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     sendMessage()
