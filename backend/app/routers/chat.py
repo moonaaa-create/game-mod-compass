@@ -1,8 +1,14 @@
 import os
-from fastapi import APIRouter, Request, Response
+import time
+from fastapi import APIRouter, Request, Response, Depends
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from sqlmodel import Session as DBSession
+from sqlmodel import select
+
+from app.database import get_session
+from app.models import MinecraftMod, RobloxGame
 
 load_dotenv()
 
@@ -15,6 +21,57 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # 메모리 기반 대화 기록 저장소 (세션별)
 CHAT_HISTORY = {}
+MAX_HISTORY_TURNS = 12  # system 제외, 최근 N개 메시지만 유지 (컨텍스트 폭주 방지)
+
+# 카탈로그 요약 캐시 (DB 조회 비용 절감용, 5분 TTL)
+_catalog_cache = {"text": None, "ts": 0}
+CATALOG_TTL_SECONDS = 300
+
+
+def build_catalog_context(db: DBSession) -> str:
+    now = time.time()
+    if _catalog_cache["text"] and now - _catalog_cache["ts"] < CATALOG_TTL_SECONDS:
+        return _catalog_cache["text"]
+
+    top_mods = db.exec(
+        select(MinecraftMod).order_by(MinecraftMod.download_count.desc()).limit(20)
+    ).all()
+    top_games = db.exec(
+        select(RobloxGame).order_by(RobloxGame.playing.desc()).limit(20)
+    ).all()
+
+    mod_lines = [
+        f"- {m.name} (다운로드 {m.download_count:,}회, 요약: {m.summary or '정보 없음'})"
+        for m in top_mods
+    ]
+    game_lines = [
+        f"- {g.name} (장르: {g.genre}, 동시 접속 {g.playing:,}명)"
+        for g in top_games
+    ]
+
+    text = (
+        "[실시간 인기 마인크래프트 모드 TOP 20]\n" + "\n".join(mod_lines) +
+        "\n\n[실시간 인기 로블록스 게임 TOP 20]\n" + "\n".join(game_lines)
+    )
+    _catalog_cache["text"] = text
+    _catalog_cache["ts"] = now
+    return text
+
+
+def build_system_prompt(catalog_context: str) -> str:
+    return f"""너는 'Mod Compass' 웹사이트에 내장된, 자유롭게 대화하는 게임/모드 추천 AI 가이드야.
+무중력 공간에서 둥둥 떠다니는 말풍선으로 대화하니 말투는 짧고 재치있게, 하지만 내용은 알차게 답해.
+
+역할과 대화 방식:
+1. 정해진 틀에 박힌 답을 반복하지 말고, 사용자의 이전 발언과 취향을 기억해서 자연스럽게 이어지는 대화를 해.
+2. 사용자가 취향(장르, 난이도, 혼자/같이, PC 사양 등)을 말하지 않았으면 짧게 되물어봐서 맞춤 추천을 준비해.
+3. 마인크래프트 모드나 로블록스 게임을 추천할 때는 아래 실시간 카탈로그 데이터를 우선 참고해서 실제로 사이트에 있는
+   항목 위주로 추천하고, 카탈로그에 없는 유명한 것도 필요하면 보조적으로 언급해도 돼.
+4. 매번 같은 형식/같은 목록을 복붙하지 말고, 직전 대화 맥락에 맞춰 답변 내용과 추천 항목을 다르게 구성해.
+5. 답변은 3~6줄 내외로 간결하게, 필요하면 짧은 불릿으로 정리해.
+
+{catalog_context}
+"""
 
 class ChatIn(BaseModel):
     message: str
@@ -24,6 +81,7 @@ async def chat(
     payload: ChatIn,
     request: Request,
     response: Response,
+    db: DBSession = Depends(get_session),
 ):
     # 쿠키 기반 세션 ID (간단히 구현)
     session_id = request.cookies.get("chat_session")
@@ -36,13 +94,20 @@ async def chat(
             samesite="none",
             secure=True,
         )
-        
-    history = CHAT_HISTORY.setdefault(session_id, [
-        {"role": "system", "content": "너는 안티그래비티 물리 엔진 웹 인터페이스에 연동된 재미있고 톡톡 튀는 게임 추천 AI 가이드야. 무중력 공간에서 둥둥 떠다니는 말풍선으로 대화하게 될 테니, 짧고 재치있게 답변해줘."}
-    ])
+
+    catalog_context = build_catalog_context(db)
+    system_prompt = {"role": "system", "content": build_system_prompt(catalog_context)}
+
+    history = CHAT_HISTORY.setdefault(session_id, [system_prompt])
+    # 카탈로그가 갱신됐을 수 있으니 system 프롬프트는 항상 최신으로 갱신
+    history[0] = system_prompt
 
     user_msg = payload.message.strip()
     history.append({"role": "user", "content": user_msg})
+
+    # 컨텍스트 폭주 방지: system + 최근 N개 메시지만 유지
+    if len(history) > MAX_HISTORY_TURNS + 1:
+        history[:] = [history[0]] + history[-MAX_HISTORY_TURNS:]
 
     # APIM Foundry 프록시가 설정돼 있으면 우선 사용, 없으면 일반 OpenAI API로 폴백
     if APIM_BASE_URL and APIM_KEY:
@@ -63,12 +128,21 @@ async def chat(
         completion = await client.chat.completions.create(
             model=model,
             messages=history,
-            max_completion_tokens=200,
-            temperature=0.8
+            max_completion_tokens=500,
+            temperature=0.9
         )
         reply = completion.choices[0].message.content
         history.append({"role": "assistant", "content": reply})
-        
+
         return {"reply": reply}
     except Exception as e:
         return {"reply": f"에러가 발생했습니다: {str(e)}"}
+
+
+@router.post("/reset")
+async def reset_chat(request: Request, response: Response):
+    """세션의 대화 기록을 서버 메모리에서 초기화."""
+    session_id = request.cookies.get("chat_session")
+    if session_id and session_id in CHAT_HISTORY:
+        del CHAT_HISTORY[session_id]
+    return {"status": "reset"}
