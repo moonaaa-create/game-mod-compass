@@ -141,6 +141,18 @@ onMounted(() => {
 
 <template>
   <div class="chat-page">
+    <div class="floating-icons" aria-hidden="true">
+      <span class="float-icon fi-1">⛏️</span>
+      <span class="float-icon fi-2">🧱</span>
+      <span class="float-icon fi-3">🎮</span>
+      <span class="float-icon fi-4">💎</span>
+      <span class="float-icon fi-5">🧭</span>
+      <span class="float-icon fi-6">🧟</span>
+      <span class="float-icon fi-7">🏰</span>
+      <span class="float-icon fi-8">🕹️</span>
+      <span class="float-icon fi-9">🌳</span>
+      <span class="float-icon fi-10">👾</span>
+    </div>
     <header class="chat-header">
       <button class="logo" type="button" @click="emit('navigate-home')">
         🧭 Mod Compass
@@ -255,9 +267,54 @@ onMounted(() => {
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
   color: #f1f5f9;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+}
+
+/* 채팅 화면 뒤에 은은하게 떠다니는 마인크래프트/로블록스 아이콘 배경 */
+.floating-icons {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.float-icon {
+  position: absolute;
+  font-size: 2.4rem;
+  opacity: 0.14;
+  filter: blur(0.3px);
+  animation: floaty 14s ease-in-out infinite;
+}
+
+.fi-1 { top: 8%; left: 6%; animation-duration: 16s; }
+.fi-2 { top: 68%; left: 10%; animation-duration: 13s; animation-delay: -3s; }
+.fi-3 { top: 20%; left: 82%; animation-duration: 15s; animation-delay: -6s; }
+.fi-4 { top: 44%; left: 46%; animation-duration: 18s; animation-delay: -2s; font-size: 1.8rem; }
+.fi-5 { top: 78%; left: 70%; animation-duration: 12s; animation-delay: -8s; }
+.fi-6 { top: 32%; left: 20%; animation-duration: 17s; animation-delay: -5s; font-size: 2rem; }
+.fi-7 { top: 12%; left: 55%; animation-duration: 19s; animation-delay: -9s; }
+.fi-8 { top: 85%; left: 30%; animation-duration: 14s; animation-delay: -1s; font-size: 2rem; }
+.fi-9 { top: 55%; left: 90%; animation-duration: 16s; animation-delay: -4s; font-size: 2.2rem; }
+.fi-10 { top: 5%; left: 30%; animation-duration: 13s; animation-delay: -7s; font-size: 1.9rem; }
+
+@keyframes floaty {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(12px, -18px) rotate(6deg); }
+  50% { transform: translate(-8px, 10px) rotate(-4deg); }
+  75% { transform: translate(-14px, -8px) rotate(4deg); }
+}
+
+@media (max-width: 640px) {
+  .float-icon {
+    font-size: 1.7rem;
+    opacity: 0.12;
+  }
 }
 
 .chat-header {
+  position: relative;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -298,6 +355,8 @@ onMounted(() => {
 }
 
 .chat-body {
+  position: relative;
+  z-index: 10;
   flex: 1;
   display: flex;
   flex-direction: column;
