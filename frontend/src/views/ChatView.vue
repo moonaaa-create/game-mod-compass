@@ -23,14 +23,21 @@ function scrollToBottom() {
   })
 }
 
-function pushMessage(role, text) {
+function pushMessage(role, text, cards = []) {
   messages.value.push({
     role,
     text,
+    cards,
     time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
   })
   scrollToBottom()
 }
+
+function onImgError(e) {
+  e.target.style.display = 'none'
+}
+
+const typeLabel = { minecraft: '🧱 마인크래프트 모드', roblox: '🎮 로블록스 게임' }
 
 const GREETING = '안녕하세요! 유스AI프로젝트 2기 2조에서 만든 Mod Compass입니다 🧭\n평소에 하시는 게임, 관심사, 취미 등을 알려주시면 그에 맞는 로블록스 게임이나 마인크래프트 모드를 추천해드릴게요!'
 
@@ -75,7 +82,7 @@ async function sendMessage() {
 
     if (res.ok) {
       const data = await res.json()
-      pushMessage('ai', data.reply)
+      pushMessage('ai', data.reply, data.cards || [])
     } else {
       pushMessage('ai', '⚠️ 서버 에러가 발생했습니다. 잠시 후 다시 시도해주세요.')
     }
@@ -155,6 +162,36 @@ onMounted(() => {
             <div class="avatar" :class="m.role">{{ m.role === 'user' ? '🙂' : '🤖' }}</div>
             <div class="bubble-wrap">
               <div class="bubble" :class="m.role" v-html="formatMessage(m.text)"></div>
+              <div v-if="m.cards && m.cards.length" class="rec-cards">
+                <a
+                  v-for="(c, ci) in m.cards"
+                  :key="ci"
+                  class="rec-card"
+                  :class="c.type === 'roblox' ? 'preview-card' : 'compact-card'"
+                  :href="c.link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    v-if="c.image_url"
+                    class="rec-card-img"
+                    :src="c.image_url"
+                    :alt="c.name"
+                    loading="lazy"
+                    @error="onImgError"
+                  />
+                  <div class="rec-card-body">
+                    <span class="rec-card-type">{{ typeLabel[c.type] || c.type }}</span>
+                    <h4 class="rec-card-name">{{ c.name }}</h4>
+                    <p v-if="c.reason" class="rec-card-reason">{{ c.reason }}</p>
+                    <div class="rec-card-meta">
+                      <span v-if="c.stat_value" class="rec-card-stat">{{ c.stat_label }} {{ c.stat_value }}</span>
+                      <span class="rec-card-link">바로가기 →</span>
+                    </div>
+                    <span v-if="c.type === 'roblox'" class="rec-card-url">roblox.com</span>
+                  </div>
+                </a>
+              </div>
               <span class="timestamp">{{ m.time }}</span>
             </div>
           </div>
@@ -382,6 +419,121 @@ onMounted(() => {
   padding: 0 4px;
 }
 
+.rec-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 320px;
+}
+
+.rec-card {
+  display: flex;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s, transform 0.15s, border-color 0.2s;
+}
+
+.rec-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(147, 197, 253, 0.5);
+  transform: translateY(-2px);
+}
+
+.rec-card-img {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rec-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* 로블록스 게임: 웹사이트 미리보기(OG 카드)처럼 큰 썸네일이 위에 오는 세로형 카드 */
+.rec-card.preview-card {
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.preview-card .rec-card-img {
+  width: 100%;
+  height: 180px;
+  min-width: 0;
+  border-radius: 0;
+  object-fit: cover;
+}
+
+.preview-card .rec-card-body {
+  padding: 12px 14px 14px;
+  gap: 4px;
+}
+
+.rec-card-url {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.rec-card-type {
+  font-size: 0.72rem;
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.rec-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rec-card-reason {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.75);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rec-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  gap: 8px;
+}
+
+.rec-card-stat {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.rec-card-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
 .suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -509,6 +661,33 @@ onMounted(() => {
     white-space: nowrap;
     font-size: 0.82rem;
     padding: 7px 14px;
+  }
+  .rec-cards {
+    max-width: 100%;
+  }
+  .rec-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  .rec-card-img {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+  }
+  .preview-card {
+    padding: 0;
+  }
+  .preview-card .rec-card-img {
+    height: 140px;
+  }
+  .preview-card .rec-card-body {
+    padding: 10px 12px 12px;
+  }
+  .rec-card-name {
+    font-size: 0.92rem;
+  }
+  .rec-card-reason {
+    font-size: 0.8rem;
   }
   .input-bar {
     padding: 10px 0 calc(14px + env(safe-area-inset-bottom));
