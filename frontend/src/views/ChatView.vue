@@ -69,6 +69,7 @@ async function sendMessage() {
 
   pushMessage('user', text)
   draft.value = ''
+  if (inputEl.value) inputEl.value.style.height = 'auto'
   isLoading.value = true
   scrollToBottom()
 
@@ -112,6 +113,13 @@ function handleKeydown(e) {
     e.preventDefault()
     sendMessage()
   }
+}
+
+// 입력창에 스크롤바가 생기지 않도록, 내용에 맞춰 높이를 자동으로 늘림(최대 max-height까지)
+function autoGrow(e) {
+  const el = e.target
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
 }
 
 const suggestions = [
@@ -227,6 +235,7 @@ onMounted(() => {
           placeholder="궁금한 게임이나 모드를 물어보세요..."
           :disabled="isLoading"
           @keydown="handleKeydown"
+          @input="autoGrow"
         ></textarea>
         <button type="submit" class="send-btn" :disabled="isLoading || !draft.trim()">
           {{ isLoading ? '전송 중...' : '전송 ➤' }}
@@ -578,6 +587,7 @@ onMounted(() => {
   font-family: inherit;
   outline: none;
   max-height: 140px;
+  overflow-y: hidden;
 }
 
 .input-bar textarea::placeholder {
