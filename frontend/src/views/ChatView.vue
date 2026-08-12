@@ -32,6 +32,28 @@ function pushMessage(role, text) {
   scrollToBottom()
 }
 
+const GREETING = '안녕하세요! 유스AI프로젝트 2기 2조에서 만든 Mod Compass입니다 🧭\n평소에 하시는 게임, 관심사, 취미 등을 알려주시면 그에 맞는 로블록스 게임이나 마인크래프트 모드를 추천해드릴게요!'
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function formatMessage(text) {
+  let safe = escapeHtml(text || '')
+  // 마크다운 링크 [텍스트](URL) -> 실제 클릭 가능한 링크
+  safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, label, url) => {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+  })
+  // 순수 URL도 자동 링크 처리 (마크다운 문법이 아닌 경우 대비)
+  safe = safe.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, (m, pre, url) => {
+    return `${pre}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+  })
+  return safe.replace(/\n/g, '<br>')
+}
+
 async function sendMessage() {
   const text = draft.value.trim()
   if (!text || isLoading.value) return
@@ -70,7 +92,7 @@ async function restartChat() {
   } catch (err) {
     // 세션 초기화 실패는 무시하고 화면만 리셋
   }
-  pushMessage('ai', '안녕! 나는 Mod Compass의 AI 가이드야 🧭\n마인크래프트 모드나 로블록스 게임, 궁금한 거 편하게 물어봐!')
+  pushMessage('ai', GREETING)
 }
 
 function handleKeydown(e) {
@@ -92,7 +114,7 @@ function useSuggestion(text) {
 }
 
 onMounted(() => {
-  pushMessage('ai', '안녕! 나는 Mod Compass의 AI 가이드야 🧭\n마인크래프트 모드나 로블록스 게임, 궁금한 거 편하게 물어봐!')
+  pushMessage('ai', GREETING)
   inputEl.value?.focus()
 })
 </script>
@@ -127,7 +149,7 @@ onMounted(() => {
           >
             <div class="avatar" :class="m.role">{{ m.role === 'user' ? '🙂' : '🤖' }}</div>
             <div class="bubble-wrap">
-              <div class="bubble" :class="m.role">{{ m.text }}</div>
+              <div class="bubble" :class="m.role" v-html="formatMessage(m.text)"></div>
               <span class="timestamp">{{ m.time }}</span>
             </div>
           </div>
@@ -310,6 +332,21 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f1f5f9;
   border-bottom-left-radius: 4px;
+}
+
+.bubble :deep(a) {
+  color: #93c5fd;
+  text-decoration: underline;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.bubble.user :deep(a) {
+  color: #dbeafe;
+}
+
+.bubble :deep(a:hover) {
+  color: #bfdbfe;
 }
 
 .bubble.typing {

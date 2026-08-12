@@ -1,5 +1,6 @@
 import os
 import time
+from urllib.parse import quote
 from fastapi import APIRouter, Request, Response, Depends
 from pydantic import BaseModel
 from openai import AsyncOpenAI
@@ -41,11 +42,13 @@ def build_catalog_context(db: DBSession) -> str:
     ).all()
 
     mod_lines = [
-        f"- {m.name} (다운로드 {m.download_count:,}회, 요약: {m.summary or '정보 없음'})"
+        f"- {m.name} | 다운로드 {m.download_count:,}회 | 요약: {m.summary or '정보 없음'} "
+        f"| 링크: https://www.curseforge.com/minecraft/mc-mods/search?search={quote(m.name)}"
         for m in top_mods
     ]
     game_lines = [
-        f"- {g.name} (장르: {g.genre}, 동시 접속 {g.playing:,}명)"
+        f"- {g.name} | 장르: {g.genre} | 동시 접속 {g.playing:,}명 "
+        f"| 링크: https://www.roblox.com/search/games?Keyword={quote(g.name)}"
         for g in top_games
     ]
 
@@ -59,16 +62,18 @@ def build_catalog_context(db: DBSession) -> str:
 
 
 def build_system_prompt(catalog_context: str) -> str:
-    return f"""너는 'Mod Compass' 웹사이트에 내장된, 자유롭게 대화하는 게임/모드 추천 AI 가이드야.
-무중력 공간에서 둥둥 떠다니는 말풍선으로 대화하니 말투는 짧고 재치있게, 하지만 내용은 알차게 답해.
+    return f"""너는 '유스AI프로젝트 2기 2조'가 만든 'Mod Compass' 웹사이트에 내장된 게임/모드 추천 AI 가이드야.
 
 역할과 대화 방식:
-1. 정해진 틀에 박힌 답을 반복하지 말고, 사용자의 이전 발언과 취향을 기억해서 자연스럽게 이어지는 대화를 해.
-2. 사용자가 취향(장르, 난이도, 혼자/같이, PC 사양 등)을 말하지 않았으면 짧게 되물어봐서 맞춤 추천을 준비해.
-3. 마인크래프트 모드나 로블록스 게임을 추천할 때는 아래 실시간 카탈로그 데이터를 우선 참고해서 실제로 사이트에 있는
-   항목 위주로 추천하고, 카탈로그에 없는 유명한 것도 필요하면 보조적으로 언급해도 돼.
-4. 매번 같은 형식/같은 목록을 복붙하지 말고, 직전 대화 맥락에 맞춰 답변 내용과 추천 항목을 다르게 구성해.
-5. 답변은 3~6줄 내외로 간결하게, 필요하면 짧은 불릿으로 정리해.
+1. 사용자가 평소 하는 게임, 관심사, 취미 등을 말하면 그 내용을 바탕으로 마인크래프트 모드나 로블록스 게임을
+   맞춤 추천해줘. 아직 정보가 부족하면 짧게 되물어서 취향(장르, 난이도, 혼자/같이, PC 사양 등)을 파악해.
+2. 정해진 틀에 박힌 답을 반복하지 말고, 사용자의 이전 발언과 취향을 기억해서 자연스럽게 이어지는 대화를 해.
+3. 추천할 때는 아래 실시간 카탈로그 데이터를 우선 참고해서 실제로 사이트에 있는 항목 위주로 추천하고,
+   카탈로그에 없는 유명한 것도 필요하면 보조적으로 언급해도 돼.
+4. **추천하는 모드/게임에는 반드시 카탈로그에 있는 "링크:" 뒤의 URL을 그대로 함께 걸어줘.**
+   마크다운 링크 문법 [이름](URL) 형태로 자연스럽게 문장 안에 넣어.
+5. 매번 같은 형식/같은 목록을 복붙하지 말고, 직전 대화 맥락에 맞춰 답변 내용과 추천 항목을 다르게 구성해.
+6. 답변은 간결한 존댓말로, 필요하면 짧은 불릿으로 정리해.
 
 {catalog_context}
 """
