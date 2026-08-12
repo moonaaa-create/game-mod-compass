@@ -230,10 +230,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(10, 10, 20, 0.75);
   padding: 10px 20px;
   border-radius: 50px;
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .pill-logo {
@@ -291,10 +292,11 @@ onUnmounted(() => {
   z-index: 100;
   display: flex;
   gap: 10px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(10, 10, 20, 0.75);
   padding: 10px;
   border-radius: 50px;
   backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   width: 90%;
   max-width: 600px;
@@ -344,26 +346,31 @@ onUnmounted(() => {
 /* Global styles for chat bubbles so they can be injected into body or domContainer */
 .chat-bubble {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
+  max-width: min(70vw, 480px);
+  background: rgba(20, 20, 35, 0.92);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 15px 25px;
-  border-radius: 30px;
-  font-size: 1.2rem;
-  white-space: nowrap;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 16px 26px;
+  border-radius: 24px;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   transform-origin: center center;
-  color: white;
+  color: #ffffff;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   font-family: sans-serif;
 }
 
 .chat-bubble.user {
-  background: rgba(100, 200, 255, 0.2);
-  border-color: rgba(100, 200, 255, 0.4);
+  background: rgba(30, 90, 160, 0.92);
+  border-color: rgba(140, 210, 255, 0.7);
 }
 
 .chat-bubble.ai {
-  background: rgba(255, 100, 200, 0.2);
-  border-color: rgba(255, 100, 200, 0.4);
+  background: rgba(150, 40, 120, 0.92);
+  border-color: rgba(255, 150, 220, 0.7);
 }
 </style>
