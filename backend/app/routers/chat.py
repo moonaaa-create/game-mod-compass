@@ -30,7 +30,12 @@ async def chat(
     if not session_id:
         import uuid
         session_id = str(uuid.uuid4())
-        response.set_cookie("chat_session", session_id)
+        response.set_cookie(
+            "chat_session",
+            session_id,
+            samesite="none",
+            secure=True,
+        )
         
     history = CHAT_HISTORY.setdefault(session_id, [
         {"role": "system", "content": "너는 안티그래비티 물리 엔진 웹 인터페이스에 연동된 재미있고 톡톡 튀는 게임 추천 AI 가이드야. 무중력 공간에서 둥둥 떠다니는 말풍선으로 대화하게 될 테니, 짧고 재치있게 답변해줘."}

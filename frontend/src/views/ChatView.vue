@@ -16,8 +16,8 @@ let runner = null
 let mouseConstraint = null
 let bubblesData = []
 
-// 백엔드 API 주소 (환경 변수 또는 상대경로)
-const API_URL = '/api/chat'
+// 백엔드 API 주소 (VITE_API_BASE 환경 변수, 없으면 로컬 개발 기본값)
+const API_URL = `${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/api/chat`
 
 function initMatter() {
   engine = Matter.Engine.create()
@@ -115,6 +115,7 @@ async function sendMessage() {
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text })
     })
