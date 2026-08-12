@@ -454,15 +454,74 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .chat-header {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .logo {
+    font-size: 1rem;
+  }
   .header-actions {
-    gap: 4px;
+    gap: 6px;
+    width: 100%;
+    justify-content: flex-start;
   }
   .header-btn {
     padding: 6px 10px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    flex: 1 1 auto;
+    text-align: center;
+  }
+  .chat-body {
+    padding: 0 10px;
+  }
+  .messages-scroll {
+    padding: 14px 0;
   }
   .message-row {
-    max-width: 92%;
+    max-width: 96%;
+    gap: 6px;
+  }
+  .avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 1rem;
+  }
+  .bubble {
+    padding: 11px 14px;
+    font-size: 0.95rem;
+  }
+  .suggestions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .suggestion-chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding: 7px 14px;
+  }
+  .input-bar {
+    padding: 10px 0 calc(14px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .input-bar textarea {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+  .send-btn {
+    padding: 10px 16px;
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .header-btn span {
+    display: none;
   }
 }
 </style>

@@ -11,6 +11,12 @@ const page = ref('home')
 const theme = ref('light')
 const isEnginePaused = ref(false)
 
+function isMobileDevice() {
+  const narrow = window.matchMedia('(max-width: 768px)').matches
+  const touch = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  return narrow || touch
+}
+
 function applyTheme(value) {
   document.documentElement.setAttribute('data-theme', value)
 }
@@ -32,6 +38,11 @@ onMounted(() => {
   const saved = localStorage.getItem('theme')
   theme.value = saved === 'dark' ? 'dark' : 'light'
   applyTheme(theme.value)
+
+  // 모바일에서는 소개 페이지 대신 바로 AI 채팅 화면으로 진입
+  if (isMobileDevice()) {
+    page.value = 'chat'
+  }
 })
 
 function goToChat() {
