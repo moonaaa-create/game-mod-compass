@@ -1,6 +1,7 @@
 import os
 import time
 from urllib.parse import quote
+import httpx
 from fastapi import APIRouter, Request, Response, Depends
 from pydantic import BaseModel
 from openai import AsyncOpenAI
@@ -29,7 +30,30 @@ _catalog_cache = {"text": None, "ts": 0}
 CATALOG_TTL_SECONDS = 300
 
 
-def build_catalog_context(db: DBSession) -> str:
+async def fetch_roblox_root_place_ids(universe_ids: list[int]) -> dict[int, int]:
+    """Roblox 공개 API로 universe_id -> rootPlaceId 매핑을 조회.
+    (실패해도 전체 요청이 죽지 않도록 예외를 삼키고 빈 dict를 반환)"""
+    if not universe_ids:
+        return {}
+    try:
+        ids_param = ",".join(str(u) for u in universe_ids)
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://games.roblox.com/v1/games",
+                params={"universeIds": ids_param},
+            )
+            resp.raise_for_status()
+            data = resp.json().get("data", [])
+            return {
+                item["id"]: item["rootPlaceId"]
+                for item in data
+                if item.get("id") and item.get("rootPlaceId")
+            }
+    except Exception:
+        return {}
+
+
+async def build_catalog_context(db: DBSession) -> str:
     now = time.time()
     if _catalog_cache["text"] and now - _catalog_cache["ts"] < CATALOG_TTL_SECONDS:
         return _catalog_cache["text"]
@@ -41,14 +65,25 @@ def build_catalog_context(db: DBSession) -> str:
         select(RobloxGame).order_by(RobloxGame.playing.desc()).limit(20)
     ).all()
 
+    root_place_ids = await fetch_roblox_root_place_ids([g.universe_id for g in top_games])
+
     mod_lines = [
         f"- {m.name} | 다운로드 {m.download_count:,}회 | 요약: {m.summary or '정보 없음'} "
         f"| 링크: https://www.curseforge.com/minecraft/mc-mods?search={quote(m.name)}"
         for m in top_mods
     ]
+
+    def roblox_link(g: RobloxGame) -> str:
+        place_id = root_place_ids.get(g.universe_id)
+        if place_id:
+            # 실제 게임 상세 페이지로 바로 이동하는 정확한 링크
+            return f"https://www.roblox.com/games/{place_id}/{quote(g.name.replace(' ', '-'))}"
+        # rootPlaceId를 못 찾은 경우에만 검색 결과 페이지로 폴백
+        return f"https://www.roblox.com/discover/?Keyword={quote(g.name)}"
+
     game_lines = [
         f"- {g.name} | 장르: {g.genre} | 동시 접속 {g.playing:,}명 "
-        f"| 링크: https://www.roblox.com/discover/?Keyword={quote(g.name)}"
+        f"| 링크: {roblox_link(g)}"
         for g in top_games
     ]
 
@@ -104,7 +139,7 @@ async def chat(
             secure=True,
         )
 
-    catalog_context = build_catalog_context(db)
+    catalog_context = await build_catalog_context(db)
     system_prompt = {"role": "system", "content": build_system_prompt(catalog_context)}
 
     history = CHAT_HISTORY.setdefault(session_id, [system_prompt])
