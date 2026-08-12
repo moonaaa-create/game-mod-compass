@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# APIM Foundry 프록시 설정 (사내 발급 키, 우선순위 높음)
+APIM_BASE_URL = os.environ.get("APIM_BASE_URL", "").rstrip("/")
+APIM_KEY = os.environ.get("APIM_KEY")
+CHAT_MODEL = os.environ.get("CHAT_MODEL", "gpt-3.5-turbo")
+
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # 메모리 기반 대화 기록 저장소 (세션별)
@@ -34,17 +39,26 @@ async def chat(
     user_msg = payload.message.strip()
     history.append({"role": "user", "content": user_msg})
 
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return {"reply": "서버에 OPENAI_API_KEY가 설정되지 않았습니다."}
-
-    client = AsyncOpenAI(api_key=api_key)
+    # APIM Foundry 프록시가 설정돼 있으면 우선 사용, 없으면 일반 OpenAI API로 폴백
+    if APIM_BASE_URL and APIM_KEY:
+        client = AsyncOpenAI(
+            api_key="placeholder",
+            base_url=f"{APIM_BASE_URL}/{CHAT_MODEL}/",
+            default_headers={"api-key": APIM_KEY},
+        )
+        model = CHAT_MODEL
+    else:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return {"reply": "서버에 APIM_KEY 또는 OPENAI_API_KEY가 설정되지 않았습니다."}
+        client = AsyncOpenAI(api_key=api_key)
+        model = "gpt-3.5-turbo"
 
     try:
         completion = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=model,
             messages=history,
-            max_tokens=200,
+            max_completion_tokens=200,
             temperature=0.8
         )
         reply = completion.choices[0].message.content
